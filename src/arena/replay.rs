@@ -22,14 +22,24 @@ pub enum Either<A, B> {
     Finalized(B),
 }
 
+/// A trait to represent the state of a replay
 pub trait ReplayState {}
 impl ReplayState for Initialized {}
 impl ReplayState for Finalized {}
 
+/// An initialized replay state of a Splendor game
+///
+/// Contains only the initial game and no history
+/// Cannot be used to replay the game
 #[derive(Debug, Clone)]
 pub struct Initialized {
     initial_game: Game,
 }
+
+/// A replay state of a Splendor game
+///
+/// Contains the full history and 
+/// relevant information to replay the game
 #[derive(Debug, Clone)]
 pub struct Finalized {
     initial_game: Game,
@@ -38,6 +48,10 @@ pub struct Finalized {
     move_index: usize,
 }
 
+/// A replay of a Splendor game
+///
+/// Replay<Initialized> is a replay that has not been finalized
+/// Replay<Finalized> is a replay that has been finalized
 #[derive(Debug, Clone)]
 pub struct Replay<T: ReplayState> {
     inner: T,
@@ -212,15 +226,15 @@ pub async fn go_to_move(move_number: Move, arena: GlobalArena) -> Result<impl Re
     }
 }
 
-// Match the conventions of the frontend gems
-//
-//          color    : index
-//	 white (diamond) : 0
-//	 blue (sapphire) : 1
-//	 green (emerald) : 2
-//	 red (ruby)      : 3
-//	 black (onyx)    : 4
-//	 yellow (gold)   : 5
+/// Match the conventions of the frontend gems
+///
+///          color    : index
+///	 white (diamond) : 0
+///	 blue (sapphire) : 1
+///	 green (emerald) : 2
+///	 red (ruby)      : 3
+///	 black (onyx)    : 4
+///	 yellow (gold)   : 5
 fn js_gems_map() -> HashMap<Gem, usize> {
     let mut map = HashMap::new();
     map.insert(Gem::Diamond, 0);
@@ -232,8 +246,8 @@ fn js_gems_map() -> HashMap<Gem, usize> {
     map
 }
 
-// Converts a noble to a vector representing the color distribution
-// of the cost of the noble as a list of (color_index, number_needed)
+/// Converts a noble to a vector representing the color distribution
+/// of the cost of the noble as a list of (color_index, number_needed)
 fn to_js_noble(noble: &Noble) -> JSTokens {
     let mut map = js_gems_map();
     let mut js_noble = Vec::new();
@@ -251,6 +265,7 @@ fn to_js_noble(noble: &Noble) -> JSTokens {
     js_noble
 }
 
+/// Returns the nobles in the game, or an error if no replay is available
 pub async fn board_nobles(arena: GlobalArena) -> Result<impl Reply, Rejection> {
     let replay = arena.write().await.get_replay();
     match replay {
@@ -270,8 +285,8 @@ pub async fn board_nobles(arena: GlobalArena) -> Result<impl Reply, Rejection> {
     }
 }
 
-// Converts a list of card ids to a list of JSCards
-// using the conventions laid out in the frontend
+/// Converts a list of card ids to a list of JSCards
+/// using the conventions laid out in the frontend
 fn to_js_cards(card_ids: Vec<Vec<CardId>>, card_lookup: Arc<Vec<Card>>) -> Vec<Vec<JSCard>> {
     let cards = card_ids
         .iter()
@@ -315,6 +330,7 @@ fn to_js_cards(card_ids: Vec<Vec<CardId>>, card_lookup: Arc<Vec<Card>>) -> Vec<V
     grouped
 }
 
+/// Returns the cards in the game, or an error if no replay is available
 pub async fn board_cards(arena: GlobalArena) -> Result<impl Reply, Rejection> {
     let replay = arena.write().await.get_replay();
     match replay {
@@ -332,8 +348,8 @@ pub async fn board_cards(arena: GlobalArena) -> Result<impl Reply, Rejection> {
     }
 }
 
-// Converts a list of card counts to a list of JSDeck
-// using the conventions laid out in the frontend
+/// Converts a list of card counts to a list of JSDeck
+/// using the conventions laid out in the frontend
 pub fn to_js_decks(deck_counts: [usize; 3]) -> Vec<JSDeck> {
     let mut decks = Vec::new();
     for (i, &count) in deck_counts.iter().enumerate() {
@@ -344,6 +360,7 @@ pub fn to_js_decks(deck_counts: [usize; 3]) -> Vec<JSDeck> {
     decks
 }
 
+/// Returns the decks in the game, or an error if no replay is available
 pub async fn board_decks(arena: GlobalArena) -> Result<impl Reply, Rejection> {
     let replay = arena.write().await.get_replay();
     match replay {
@@ -360,8 +377,8 @@ pub async fn board_decks(arena: GlobalArena) -> Result<impl Reply, Rejection> {
     }
 }
 
-// Converts a list of gems from the public board area to a list of JSGems
-// using the conventions laid out in the frontend
+/// Converts a list of gems from the public board area to a list of JSGems
+/// using the conventions laid out in the frontend
 pub fn to_js_bank(gems: &Gems) -> JSTokens {
     let map = js_gems_map();
     let mut js_bank = Vec::new();
@@ -375,6 +392,7 @@ pub fn to_js_bank(gems: &Gems) -> JSTokens {
     js_bank
 }
 
+/// Returns the bank (remaining gems available to be taken) in the game, or an error if no replay is available
 pub async fn board_bank(arena: GlobalArena) -> Result<impl Reply, Rejection> {
     let replay = arena.write().await.get_replay();
     match replay {
@@ -390,8 +408,8 @@ pub async fn board_bank(arena: GlobalArena) -> Result<impl Reply, Rejection> {
     }
 }
 
-//  Converts metadata about the players to a list of JSPlayer
-//  using the conventions laid out in the frontend
+///  Converts metadata about the players to a list of JSPlayer
+///  using the conventions laid out in the frontend
 pub fn to_js_players(players: &Vec<Player>, card_lookup: Arc<Vec<Card>>) -> Vec<JSPlayer> {
     let mut js_players = Vec::new();
     for player in players {
@@ -458,6 +476,7 @@ pub fn to_js_players(players: &Vec<Player>, card_lookup: Arc<Vec<Card>>) -> Vec<
     js_players
 }
 
+/// Returns the players in the game, or an error if no replay is available
 pub async fn board_players(arena: GlobalArena) -> Result<impl Reply, Rejection> {
     let replay = arena.write().await.get_replay();
     match replay {
