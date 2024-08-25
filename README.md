@@ -1,2 +1,2 @@
-# splendor_arena
-Compete against friends to build the best AI in the board game, Splendor! Supports Rust and Python bots. 
+# Splendor-bot
+An investigation into using AI techniques to solve the game of Splendor at a human level of performance
