@@ -2,6 +2,12 @@
 name = "splendor_arena"
 version = "0.1.0"
 edition = "2021"
+license-file = "LICENSE"
+keywords = ["splendor", "game", "arena"]
+description = "A crate for facilitating Splendor game play between autonomous agents."
+repository = "https://github.com/pashneal/splendor_arena"
+readme = "README.md"
+
 
 [dependencies]
 cached = "0.48.1"
