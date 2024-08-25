@@ -1,2 +1,2 @@
-# Splendor-bot
-An investigation into using AI techniques to solve the game of Splendor at a human level of performance
+# splendor_arena
+A crate to support a clash of AI in the game of [Splendor](https://boardgamegeek.com/boardgame/148228/splendor) 
