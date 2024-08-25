@@ -2,7 +2,7 @@
 name = "splendor_arena"
 version = "0.1.0"
 edition = "2021"
-license-file = "LICENSE"
+license = "MIT"
 keywords = ["splendor", "game", "arena"]
 description = "A crate for facilitating Splendor game play between autonomous agents."
 repository = "https://github.com/pashneal/splendor_arena"
