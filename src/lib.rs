@@ -8,6 +8,7 @@ pub mod gem;
 pub mod nobles;
 pub mod player;
 pub mod gems;
+pub mod stubs;
 
 pub use crate::arena::*;
 pub use crate::card::*;
@@ -18,6 +19,7 @@ pub use crate::nobles::*;
 pub use crate::player::*;
 pub use crate::protocol::*;
 pub use crate::gems::*;
+
 
 pub trait JSONable: serde::Serialize + serde::de::DeserializeOwned {
     fn from_json(json: &str) -> Self {
