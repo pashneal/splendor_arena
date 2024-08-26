@@ -5,7 +5,7 @@ edition = "2021"
 license = "MIT"
 keywords = ["splendor", "game", "arena"]
 description = "A crate for facilitating Splendor game play between autonomous agents."
-repository = "https://github.com/pashneal/splendor_arena"
+repository = "https://github.com/pashneal/stourney_arena"
 readme = "README.md"
 
 
