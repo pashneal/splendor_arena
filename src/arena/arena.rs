@@ -20,6 +20,7 @@ pub struct Arena {
     clock: Clock,
     game_started: bool,
     replay: Either<Replay<Initialized>, FinalizedReplay>,
+    python_interpreter : String,
 }
 
 /// A struct given to each client that contains all public information and private
@@ -38,7 +39,7 @@ pub struct ClientInfo {
 impl JSONable for ClientInfo {}
 
 impl Arena {
-    pub fn new(players: u8, binaries: Vec<String>, initial_time: Duration, increment: Duration) -> Arena {
+    pub fn new(players: u8, binaries: Vec<String>, initial_time: Duration, increment: Duration, python_interpreter : &str) -> Arena {
         let card_lookup = Arc::new(Card::all());
         let game = Game::new(players, card_lookup);
         let clients = binaries;
@@ -50,6 +51,7 @@ impl Arena {
             clients,
             game_started: false,
             clock: Clock::new(num_players, initial_time, increment),
+            python_interpreter : python_interpreter.to_owned(),
         }
     }
 

@@ -28,9 +28,10 @@ static TURN_COUNTER: AtomicUsize = AtomicUsize::new(0);
 static LAST_PLAYER: AtomicUsize = AtomicUsize::new(5);
 
 impl Arena {
-    pub async fn launch(port: u16, binaries: Vec<String>, num_players: u8, initial_time: Duration, increment: Duration) {
+    pub async fn launch(port: u16, binaries: Vec<String>, num_players: u8, initial_time: Duration, increment: Duration, python_interpreter : Option<String>) {
         let init_binaries = binaries.clone();
-        let arena = Arena::new(num_players, binaries, initial_time, increment);
+        let python_interpreter = python_interpreter.unwrap_or("python3".to_string());
+        let arena = Arena::new(num_players, binaries, initial_time, increment, &python_interpreter);
         // Keep track of the game state
         let arena = Arc::new(RwLock::new(arena));
         // Turn our arena state into a new Filter
@@ -124,7 +125,7 @@ impl Arena {
                 tokio::time::sleep(Duration::from_secs(1)).await;
                 // Launches without stdout, we rely on the logs for that
                 if binary.ends_with(".py") {
-                    match std::process::Command::new("python3")
+                    match std::process::Command::new(&python_interpreter)
                         .arg(binary.clone())
                         .arg(format!("--port={}", port))
                         .stdout(std::process::Stdio::null())
