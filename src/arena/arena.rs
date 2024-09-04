@@ -300,9 +300,10 @@ impl Arena {
             .and(warp::ws())
             .map(|ws: warp::ws::Ws| ws.on_upgrade(move |socket| log_stream_connected(socket)));
 
+        let splendor = warp::path("splendor").and(warp::fs::dir(static_files_loc.clone()));
         let static_files = warp::path("static_files").and(warp::fs::dir(static_files_loc));
 
-        let routes = game.or(log).or(replay).or(time).or(static_files);
+        let routes = game.or(log).or(replay).or(time).or(splendor).or(static_files);
 
         tokio::spawn(async move {
             // TODO: use a handshake protocol instead of timing

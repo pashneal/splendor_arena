@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
  
+## [0.1.8] - 2024-09-03
+ 
+### Added
+
+- Added the ability to git the frontend from either `static_files/` or `splendor/`  
+
 ## [0.1.7] - 2024-09-03
  
 ### Fixes
