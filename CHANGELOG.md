@@ -2,8 +2,13 @@
 
 All notable changes to this project will be documented in this file.
  
-## [0.1.6] - 2024-09-03
+## [0.1.7] - 2024-09-03
  
+### Fixes
+
+- Fixed a bug where the static files were not being served correctly 
+
+## [0.1.6] - 2024-09-03
  
 ### Breaking Changes
 
