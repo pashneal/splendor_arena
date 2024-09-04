@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
 now accepts a no paramters, instead, use the `Arena::ArenaBuilder` to
 construct the `Arena` object with the desired configuration.
 
+### Other Changes
+
 - The ability to specify which path has static files has been added
 to `Arena::ArenaBuilder` with the `static_files` method.
  
