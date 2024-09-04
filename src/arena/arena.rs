@@ -300,7 +300,7 @@ impl Arena {
             .and(warp::ws())
             .map(|ws: warp::ws::Ws| ws.on_upgrade(move |socket| log_stream_connected(socket)));
 
-        let static_files = warp::path(static_files_loc).and(warp::fs::dir("frontend"));
+        let static_files = warp::path("static_files").and(warp::fs::dir(static_files_loc));
 
         let routes = game.or(log).or(replay).or(time).or(static_files);
 
