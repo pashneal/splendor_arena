@@ -27,130 +27,6 @@ static CLIENT_ID: AtomicUsize = AtomicUsize::new(0);
 static TURN_COUNTER: AtomicUsize = AtomicUsize::new(0);
 static LAST_PLAYER: AtomicUsize = AtomicUsize::new(5);
 
-impl Arena {
-    pub async fn launch(port: u16, binaries: Vec<String>, num_players: u8, initial_time: Duration, increment: Duration, python_interpreter : Option<String>) {
-        let init_binaries = binaries.clone();
-        let python_interpreter = python_interpreter.unwrap_or("python3".to_string());
-        let arena = Arena::new(num_players, binaries, initial_time, increment, &python_interpreter);
-        // Keep track of the game state
-        let arena = Arc::new(RwLock::new(arena));
-        // Turn our arena state into a new Filter
-        let arena = warp::any().map(move || arena.clone());
-
-        // Keep track of all connected players
-        let clients = Clients::default();
-        // Turn our "clients" state into a new Filter...
-        let clients = warp::any().map(move || clients.clone());
-
-        let replay_post = warp::post()
-            .and(warp::path("replay"));
-
-        let replay_get = warp::get()
-            .and(warp::path("replay"));
-
-        let replay_next = replay_post
-            .and(warp::path("next"))
-            .and(arena.clone())
-            .and_then(replay::next_move);
-
-        let replay_prev = replay_post 
-            .and(warp::path("previous"))
-            .and(arena.clone())
-            .and_then(replay::previous_move);
-
-        let replay_goto = replay_post 
-            .and(warp::path("goto"))
-            .and(replay::json_body())
-            .and(arena.clone())
-            .and_then(replay::go_to_move);
-
-        let replay_board_nobles = replay_get 
-            .and(warp::path("nobles"))
-            .and(arena.clone())
-            .and_then(replay::board_nobles);
-
-        let replay_board_cards = replay_get 
-            .and(warp::path("cards"))
-            .and(arena.clone())
-            .and_then(replay::board_cards);
-
-        let replay_board_decks = replay_get 
-            .and(warp::path("decks"))
-            .and(arena.clone())
-            .and_then(replay::board_decks);
-
-        let replay_board_bank = replay_get 
-            .and(warp::path("bank"))
-            .and(arena.clone())
-            .and_then(replay::board_bank);
-
-        let replay_board_players = replay_get
-            .and(warp::path("players"))
-            .and(arena.clone())
-            .and_then(replay::board_players);
-
-        let replay = replay_next
-            .or(replay_prev)
-            .or(replay_goto)
-            .or(replay_board_nobles)
-            .or(replay_board_cards)
-            .or(replay_board_decks)
-            .or(replay_board_bank)
-            .or(replay_board_players);
-
-        let time = warp::get()
-            .and(warp::path("time"))
-            .and(arena.clone())
-            .and_then(clock::current_time_remaining);
-
-        let game = warp::path("game")
-            .and(warp::ws())
-            .and(clients)
-            .and(arena.clone())
-            .map(|ws: warp::ws::Ws, clients, arena| {
-                ws.on_upgrade(move |socket| user_connected(socket, clients, arena))
-            });
-
-        let log = warp::path("log")
-            .and(warp::ws())
-            .map(|ws: warp::ws::Ws| ws.on_upgrade(move |socket| log_stream_connected(socket)));
-
-        let static_files = warp::path("splendor").and(warp::fs::dir("frontend"));
-
-        let routes = game.or(log).or(replay).or(time).or(static_files);
-
-        tokio::spawn(async move {
-            // TODO: use a handshake protocol instead of timing
-            for binary in init_binaries {
-                tokio::time::sleep(Duration::from_secs(1)).await;
-                // Launches without stdout, we rely on the logs for that
-                if binary.ends_with(".py") {
-                    match std::process::Command::new(&python_interpreter)
-                        .arg(binary.clone())
-                        .arg(format!("--port={}", port))
-                        .stdout(std::process::Stdio::null())
-                        .spawn()
-                    {
-                        Ok(_) => info!("Launched python3 script {}", binary),
-                        Err(e) => error!("Failed to launch python3 script {}: {}", binary, e),
-                    }
-                } else {
-                    match std::process::Command::new(binary.clone())
-                        .arg(format!("--port={}", port))
-                        .stdout(std::process::Stdio::null())
-                        .spawn()
-                    {
-                        Ok(_) => info!("Launched binary {}", binary),
-                        Err(e) => error!("Failed to launch binary {}: {}", binary, e),
-                    }
-                }
-            }
-        });
-
-        // Start the server on localhost at the specified port
-        warp::serve(routes).run(([127, 0, 0, 1], port)).await;
-    }
-}
 
 #[derive(Debug, Display, Error)]
 pub enum ParseError {
@@ -179,7 +55,7 @@ fn parse_message(message_text: &Message) -> Result<ClientMessage, ParseError> {
     Ok(client_msg)
 }
 
-async fn validate_action(action: &Action, player_id: usize, arena: GlobalArena) -> bool {
+pub async fn validate_action(action: &Action, player_id: usize, arena: GlobalArena) -> bool {
     // -> The current player is not timed out  
     if arena.read().await.is_timed_out(){
         error!("Player {} is timed out!", player_id);
@@ -210,7 +86,7 @@ async fn validate_action(action: &Action, player_id: usize, arena: GlobalArena) 
 
 }
 
-async fn log_stream_connected(socket: WebSocket) {
+pub async fn log_stream_connected(socket: WebSocket) {
     // TODO: This makes an assumption that
     // the client that last connected is the one that is logging
     // This may not be a good assumption
@@ -247,7 +123,7 @@ async fn log_stream_connected(socket: WebSocket) {
 }
 
 /// Setup a new client to play the game
-async fn user_connected(ws: WebSocket, clients: Clients, arena: GlobalArena) {
+pub async fn user_connected(ws: WebSocket, clients: Clients, arena: GlobalArena) {
     let (client_tx, mut client_rx) = ws.split();
     let my_id = CLIENT_ID.fetch_add(1, Ordering::Relaxed);
     clients.write().await.insert(my_id, client_tx);
@@ -327,7 +203,7 @@ async fn user_connected(ws: WebSocket, clients: Clients, arena: GlobalArena) {
         game_initialized(init_clients, init_arena).await;
     }
 }
-async fn play_default_action(my_id : usize, clients: Clients, arena: GlobalArena) {
+pub async fn play_default_action(my_id : usize, clients: Clients, arena: GlobalArena) {
     if arena.read().await.is_game_over() {
         return;
     }
@@ -338,21 +214,21 @@ async fn play_default_action(my_id : usize, clients: Clients, arena: GlobalArena
     action_played(clients.clone(), arena.clone()).await;
 }
 
-async fn game_initialized(clients: Clients, arena: GlobalArena) {
+pub async fn game_initialized(clients: Clients, arena: GlobalArena) {
     info!("All users locked and loaded! Game starting!");
     arena.write().await.start_game();
     action_played(clients, arena).await;
 }
 
-async fn user_initialized(my_id: usize, clients: Clients, arena: GlobalArena) {
+pub async fn user_initialized(my_id: usize, clients: Clients, arena: GlobalArena) {
     info!("{} connected", my_id);
 }
 
-async fn user_disconnected(my_id: usize, clients: Clients, arena: GlobalArena) {
+pub async fn user_disconnected(my_id: usize, clients: Clients, arena: GlobalArena) {
     clients.write().await.remove(&my_id);
 }
 
-async fn action_played(clients: Clients, arena: GlobalArena) {
+pub async fn action_played(clients: Clients, arena: GlobalArena) {
     // Auto play for any given player if there is only 1 legal action
     loop {
         // If the game is over, don't do anything else

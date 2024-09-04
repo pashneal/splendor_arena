@@ -4,9 +4,11 @@ use super::*;
 use warp::{Filter, Rejection, Reply};
 
 /// Keeps track of the amount of time each player has left
+#[derive(Debug, Clone)]
 pub struct Clock {
-    total_time: Vec<Duration>,
-    increment: Duration,
+    pub total_time: Vec<Duration>,
+    pub increment: Duration,
+    pub initial_time: Duration,
     current_timestamp: SystemTime,
     current_player: Option<usize>,
     timed_out: Vec<bool>,
@@ -18,6 +20,7 @@ impl Clock {
         Clock {
             total_time: vec![initial_time; num_players],
             increment,
+            initial_time,
             current_timestamp: SystemTime::now(),
             current_player: None,
             timed_out: vec![false; num_players],
