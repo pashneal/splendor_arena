@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
  
-## [0.1.5] - 2024-09-03
+## [0.1.6] - 2024-09-03
  
  
 ### Breaking Changes
@@ -10,6 +10,9 @@ All notable changes to this project will be documented in this file.
 - Interface changed for public facing `Arena::launch` method, which
 now accepts a no paramters, instead, use the `Arena::ArenaBuilder` to
 construct the `Arena` object with the desired configuration.
+
+- The ability to specify which path has static files has been added
+to `Arena::ArenaBuilder` with the `static_files` method.
  
 ## [0.1.4] - 2024-09-01 
  
