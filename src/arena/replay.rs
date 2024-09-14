@@ -226,6 +226,7 @@ pub async fn go_to_move(move_number: Move, arena: GlobalArena) -> Result<impl Re
     }
 }
 
+/// TODO: update this to use enums or string so we don't have to look at this reference again
 /// Match the conventions of the frontend gems
 ///
 ///          color    : index

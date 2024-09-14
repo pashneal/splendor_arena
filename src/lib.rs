@@ -19,8 +19,11 @@ pub use crate::nobles::*;
 pub use crate::player::*;
 pub use crate::protocol::*;
 pub use crate::gems::*;
-// Reexport tokio
+
+// Re-export tokio
 pub use tokio;
+// Re-export tungstenite
+pub use tungstenite;
 
 
 pub trait JSONable: serde::Serialize + serde::de::DeserializeOwned {

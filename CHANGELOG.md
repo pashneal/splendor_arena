@@ -1,6 +1,14 @@
 # Change Log
 
 All notable changes to this project will be documented in this file.
+
+## [0.1.9] - 2024-09-03
+
+### Added
+
+Pins a specific version of tungstenite to avoid breaking changes,
+clients should can the  `tungstenite` version exposed by the latest `splendor_arena` crate
+
  
 ## [0.1.8] - 2024-09-03
  
