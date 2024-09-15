@@ -1,3 +1,6 @@
+// Helper functions local game server that interacts with the game logic, validates moves
+// from the clients, and send the game state back to the clients after each move
+
 use super::*;
 use std::collections::HashMap;
 use std::sync::{
