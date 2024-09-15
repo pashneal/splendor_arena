@@ -10,6 +10,7 @@ pub mod nobles;
 pub mod player;
 pub mod gems;
 pub mod stubs;
+pub mod constants;
 
 pub use crate::arena::*;
 pub use crate::card::*;

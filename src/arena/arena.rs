@@ -26,6 +26,7 @@ pub struct ArenaBuilder {
     static_files: String,
     port : u16,
     send_to_web: bool,
+    api_key: Option<String>,
 }
 
 
@@ -39,6 +40,7 @@ impl ArenaBuilder {
             port : 3030,
             send_to_web: false,
             static_files: "splendor".to_string(),
+            api_key: None,
         }
     }
 
@@ -78,8 +80,9 @@ impl ArenaBuilder {
         self
     }
 
-    pub fn send_to_web(mut self, active: bool) -> Self {
+    pub fn send_to_web(mut self, active: bool, api_key: &str) -> Self {
         self.send_to_web = active;
+        self.api_key = Some(api_key.to_owned());
         self
     }
 
@@ -94,6 +97,7 @@ impl ArenaBuilder {
         let static_files = self.static_files;
         let port = self.port;
         let send_to_web = self.send_to_web;
+        let api_key = self.api_key;
 
         Arena {
             game: game.clone(),
@@ -105,6 +109,7 @@ impl ArenaBuilder {
             static_files: static_files.to_owned(),
             port,
             send_to_web,
+            api_key,
         }
     }
 }
@@ -125,11 +130,11 @@ pub struct Arena {
                           // visualization
     port : u16,           // The port to run the local web server on
     send_to_web: bool,  // Whether to send the game state to the global server
+    api_key: Option<String>, // The api key to use for sending the game state to the global server
 }
 
 
 impl Arena {
-
     pub fn is_game_over(&self) -> bool {
         self.game.game_over()
     }
@@ -225,6 +230,9 @@ impl Arena {
 }
 
 impl Arena {
+    pub fn api_key(&self) -> Option<String> {
+        self.api_key.clone()
+    }
     pub async fn launch(self) {
         let init_binaries = self.clients.clone();
         let python_interpreter = self.python_interpreter.clone();
@@ -347,6 +355,7 @@ impl Arena {
                 }
             }
         });
+        // TODO: tokio::spawn a task that sends the game state to the global server
 
         // Start the server on localhost at the specified port
         warp::serve(routes).run(([127, 0, 0, 1], port)).await;

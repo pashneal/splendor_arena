@@ -2,7 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.1.9] - 2024-09-03
+## [0.1.x] - 2024-09-15
+
+### Added
+
+Adds the ability to view local game on a global server live
+
+## [0.1.9] - 2024-09-14
 
 ### Added
 

@@ -41,14 +41,14 @@ pub enum ArenaRequest {
 
 /// A response from the global stourney server to a client request
 /// concerning authentication of the arena
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Authenticated {
     Success,
     Failure{ reason: String }
 }
 
 /// A game state update response from the server
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Updated {
     /// Indicates that the server has updated the game state, and returns
     /// the number of successful updates that have been processed since the initialization
@@ -65,7 +65,7 @@ pub enum Updated {
 
 /// A response from the global stourney server to a client request
 /// concerning initialization of game state
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Initialized {
     Success{ id : String },
     Failure{ reason: String }
@@ -73,7 +73,7 @@ pub enum Initialized {
 
 /// A response from the global stourney server concerning whether
 /// a client was able to reconnect to a game
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Reconnected {
     Success,
     Failure{ reason: String }
@@ -82,7 +82,7 @@ pub enum Reconnected {
 
 /// Represents the information that the global stourney server
 /// can send in response to a client request or as a broadcast
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum GlobalServerResponse {
     Authenticated(Authenticated),
     Updated(Updated),
