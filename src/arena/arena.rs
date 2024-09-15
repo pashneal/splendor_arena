@@ -25,7 +25,7 @@ pub struct ArenaBuilder {
     increment: Duration,
     static_files: String,
     port : u16,
-    send_to_server: bool,
+    send_to_web: bool,
 }
 
 
@@ -37,7 +37,7 @@ impl ArenaBuilder {
             initial_time: Duration::from_secs(60),
             increment: Duration::from_secs(0),
             port : 3030,
-            send_to_server: false,
+            send_to_web: false,
             static_files: "splendor".to_string(),
         }
     }
@@ -78,8 +78,8 @@ impl ArenaBuilder {
         self
     }
 
-    pub fn send_to_server(mut self, active: bool) -> Self {
-        self.send_to_server = active;
+    pub fn send_to_web(mut self, active: bool) -> Self {
+        self.send_to_web = active;
         self
     }
 
@@ -93,7 +93,7 @@ impl ArenaBuilder {
         let increment = self.increment;
         let static_files = self.static_files;
         let port = self.port;
-        let send_to_server = self.send_to_server;
+        let send_to_web = self.send_to_web;
 
         Arena {
             game: game.clone(),
@@ -104,7 +104,7 @@ impl ArenaBuilder {
             python_interpreter : python_interpreter.to_owned(),
             static_files: static_files.to_owned(),
             port,
-            send_to_server,
+            send_to_web,
         }
     }
 }
@@ -124,7 +124,7 @@ pub struct Arena {
     static_files: String, // The location of the static files for the local web server
                           // visualization
     port : u16,           // The port to run the local web server on
-    send_to_server: bool,  // Whether to send the game state to the global server
+    send_to_web: bool,  // Whether to send the game state to the global server
 }
 
 
