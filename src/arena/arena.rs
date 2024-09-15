@@ -25,7 +25,7 @@ pub struct ArenaBuilder {
     increment: Duration,
     static_files: String,
     port : u16,
-    visualize: bool,
+    send_to_server: bool,
 }
 
 
@@ -37,7 +37,7 @@ impl ArenaBuilder {
             initial_time: Duration::from_secs(60),
             increment: Duration::from_secs(0),
             port : 3030,
-            visualize: false,
+            send_to_server: false,
             static_files: "splendor".to_string(),
         }
     }
@@ -78,8 +78,8 @@ impl ArenaBuilder {
         self
     }
 
-    pub fn visualize(mut self, active: bool) -> Self {
-        self.visualize = active;
+    pub fn send_to_server(mut self, active: bool) -> Self {
+        self.send_to_server = active;
         self
     }
 
@@ -93,7 +93,7 @@ impl ArenaBuilder {
         let increment = self.increment;
         let static_files = self.static_files;
         let port = self.port;
-        let visualize = self.visualize;
+        let send_to_server = self.send_to_server;
 
         Arena {
             game: game.clone(),
@@ -104,7 +104,7 @@ impl ArenaBuilder {
             python_interpreter : python_interpreter.to_owned(),
             static_files: static_files.to_owned(),
             port,
-            visualize,
+            send_to_server,
         }
     }
 }
@@ -113,15 +113,18 @@ impl ArenaBuilder {
 /// and run them in a tournament style. The protocol for communication is
 /// given by JSON messages across local websockets that update the game state.
 pub struct Arena {
-    game: Game,
-    pub clients: Vec<String>,
-    clock: Clock,
-    game_started: bool,
-    replay: Either<Replay<Initialized>, FinalizedReplay>,
-    python_interpreter : String,
-    static_files: String,
-    port : u16,
-    visualize: bool,
+    game: Game,  // The Splendor game state
+    pub clients: Vec<String>, // The binaries or python files to be run as clients
+    clock: Clock, // The clock for keeping track of each player's time
+    game_started: bool, // Whether the game has started
+    replay: Either<Replay<Initialized>, FinalizedReplay>, // A representation of the game including
+                                                          // the ability to walk through all
+                                                          // previous moves
+    python_interpreter : String, // The python interpreter to use
+    static_files: String, // The location of the static files for the local web server
+                          // visualization
+    port : u16,           // The port to run the local web server on
+    send_to_server: bool,  // Whether to send the game state to the global server
 }
 
 
