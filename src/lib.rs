@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+pub mod models;
 pub mod arena;
 pub mod card;
 pub mod client;
