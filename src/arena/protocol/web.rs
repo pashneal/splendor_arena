@@ -2,7 +2,7 @@ use crate::models::*;
 use crate::constants;
 use super::{Arena, GlobalArena};
 use futures_util::{stream::SplitSink, stream::SplitStream,  SinkExt, StreamExt};
-use log::{info, trace, error, warn};
+use log::{debug, info, trace, error, warn};
 use tokio::net::TcpStream;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message, MaybeTlsStream, WebSocketStream};
 use tokio::sync::RwLock;
@@ -12,7 +12,7 @@ pub type Outgoing = Arc<RwLock<SplitSink<WebSocketStream<MaybeTlsStream<TcpStrea
 pub type Incoming = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
 
 pub fn handle_info(message : &str) {
-    warn!("stourney.com says: {}", message);
+    info!("stourney.com says: {}", message);
 }
 
 pub fn handle_error(message : &str) {
@@ -36,8 +36,9 @@ pub async fn maintain_heartbeat(outgoing_stream : Outgoing) {
     loop {
         {
             let mut outgoing_stream = outgoing_stream.write().await;
-            let message = Message::text("Heartbeat");
-            trace!("Sending heartbeat to global server...");
+            let heartbeat = serde_json::to_string(&ArenaRequest::Heartbeat).unwrap();
+            let message = Message::text(heartbeat);
+            debug!("Sending heartbeat to global server...");
             let _ = outgoing_stream.send(message).await;
         }
         tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
@@ -92,30 +93,54 @@ pub async fn push_initial_game(
     incoming_stream : &mut Incoming,
     arena: GlobalArena,
 ) -> Option<String> {
+    debug!("Pushing initial game state to global server...");
+
     let arena = arena.read().await;
     assert!(arena.client_info().history.num_moves() == 0);
 
     let game_update = get_game_update(&arena).await.expect("Failed to get game update");
     let game_update = serde_json::to_string(&game_update).expect("Failed to serialize game update");
     let message = Message::text(game_update);
-    trace!("Sending initial game state to global server...");
+
+    debug!("Sending initial game state to global server...");
+    debug!("message: {:?}", message);
     let mut outgoing_stream = outgoing_stream.write().await;
-    outgoing_stream.send(message).await.expect("Failed to send initial game state"); 
+    let result = match outgoing_stream.send(message).await {
+        Ok(_) => (),
+        Err(e) => {
+            error!("Failed to send initial game state to global server: {}", e);
+            handle_failure();
+            return None
+        }
+    };
 
     //TODO: add timeout?
     while let Some(msg) = incoming_stream.next().await {
+        debug!("Received message from global server...");
         let msg = msg.expect("Failed to receive message from global server");
         let msg = msg.to_string();
-        let msg : GlobalServerResponse = serde_json::from_str(&msg).expect("Failed to deserialize message from global server");
+
+        debug!("Received message from global server: {}", msg);
+        
+        let msg = serde_json::from_str::<GlobalServerResponse>(&msg);
+        debug!("Deserialized message from global server: {:?}", msg);
+
+        if msg.is_err() {
+            error!("Failed to deserialize message from global server: {}", msg.err().unwrap());
+            handle_failure();
+            return None
+        }
+        let msg = msg.unwrap();
 
 
         match msg {
             GlobalServerResponse::Initialized(Initialized::Success{ id }) => {
-                trace!("Successfully initialized with stourney.com");
+                debug!("Successfully initialized with stourney.com");
                 return Some(id)
             },
             GlobalServerResponse::Initialized(Initialized::Failure{ reason }) => {
                 error!("Failed to initialize with stourney.com: {}", reason);
+                handle_failure();
                 return None
             }
 
@@ -148,22 +173,25 @@ pub async fn push_authentication(outgoing_stream : Outgoing, incoming_stream : &
 
 
     let message = Message::text(auth_req);
-    trace!("Sending authentication request to global server...");
+    debug!("Sending authentication request to global server...");
     info!("Contacting stourney.com...");
     {
         let mut outgoing_stream = outgoing_stream.write().await;
         outgoing_stream.send(message).await.expect("Failed to send authentication request");
 
     }
+    debug!("Contacted stourney.com...");
     //TODO: add timeout?
     while let Some(msg) = incoming_stream.next().await {
+        debug!("Received message from global server...");
         let msg = msg.expect("Failed to receive message from global server");
         let msg = msg.to_string();
         let msg : GlobalServerResponse = serde_json::from_str(&msg).expect("Failed to deserialize message from global server");
+        debug!("Received message from global server: {:?}", msg);
 
         match msg {
             GlobalServerResponse::Authenticated(Authenticated::Success) => {
-                trace!("Successfully authenticated with stourney.com");
+                debug!("Successfully authenticated with stourney.com");
                 return true
             },
             GlobalServerResponse::Authenticated(Authenticated::Failure{ reason }) => {
@@ -181,6 +209,7 @@ pub async fn push_authentication(outgoing_stream : Outgoing, incoming_stream : &
             }
         }
     }
+    debug!("Failed to receive message from global server...");
     return false
 }
 
@@ -206,13 +235,17 @@ pub async fn start(arena : GlobalArena) -> Result<(Outgoing, Incoming), String >
            return Err("Failed to connect to stourney.com".to_owned())
        }
     };
+
     let (outgoing_stream, mut incoming_stream) = websocket.split();
     let outgoing_stream = Arc::new(RwLock::new(outgoing_stream));
+
     let auth = push_authentication(outgoing_stream.clone(), &mut incoming_stream, arena.clone()).await;
     if !auth {
         return Err("Failed to authenticate with stourney.com".to_owned())
     }
     let id = push_initial_game(outgoing_stream.clone(), &mut incoming_stream, arena).await;
+    info!("server gave id: {:?}", id);
+
     if id.is_none() {
         return Err("Failed to initialize game with stourney.com".to_owned())
     }

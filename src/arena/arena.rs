@@ -238,12 +238,14 @@ impl Arena {
         let python_interpreter = self.python_interpreter.clone();
         let port = self.port;
         let static_files_loc = self.static_files.clone();
+        let send_to_web = self.send_to_web;
 
         let arena = self;
         // Keep track of the game state
         let arena = Arc::new(RwLock::new(arena));
+        let arena_clone = arena.clone();
         // Turn our arena state into a new Filter
-        let arena = warp::any().map(move || arena.clone());
+        let arena_filter = warp::any().map(move || arena.clone());
 
         // Keep track of all connected players
         let clients = Clients::default();
@@ -258,43 +260,43 @@ impl Arena {
 
         let replay_next = replay_post
             .and(warp::path("next"))
-            .and(arena.clone())
+            .and(arena_filter.clone())
             .and_then(replay::next_move);
 
         let replay_prev = replay_post 
             .and(warp::path("previous"))
-            .and(arena.clone())
+            .and(arena_filter.clone())
             .and_then(replay::previous_move);
 
         let replay_goto = replay_post 
             .and(warp::path("goto"))
             .and(replay::json_body())
-            .and(arena.clone())
+            .and(arena_filter.clone())
             .and_then(replay::go_to_move);
 
         let replay_board_nobles = replay_get 
             .and(warp::path("nobles"))
-            .and(arena.clone())
+            .and(arena_filter.clone())
             .and_then(replay::board_nobles);
 
         let replay_board_cards = replay_get 
             .and(warp::path("cards"))
-            .and(arena.clone())
+            .and(arena_filter.clone())
             .and_then(replay::board_cards);
 
         let replay_board_decks = replay_get 
             .and(warp::path("decks"))
-            .and(arena.clone())
+            .and(arena_filter.clone())
             .and_then(replay::board_decks);
 
         let replay_board_bank = replay_get 
             .and(warp::path("bank"))
-            .and(arena.clone())
+            .and(arena_filter.clone())
             .and_then(replay::board_bank);
 
         let replay_board_players = replay_get
             .and(warp::path("players"))
-            .and(arena.clone())
+            .and(arena_filter.clone())
             .and_then(replay::board_players);
 
         let replay = replay_next
@@ -308,13 +310,13 @@ impl Arena {
 
         let time = warp::get()
             .and(warp::path("time"))
-            .and(arena.clone())
+            .and(arena_filter.clone())
             .and_then(clock::current_time_remaining);
 
         let game = warp::path("game")
             .and(warp::ws())
             .and(clients)
-            .and(arena.clone())
+            .and(arena_filter.clone())
             .map(|ws: warp::ws::Ws, clients, arena| {
                 ws.on_upgrade(move |socket| user_connected(socket, clients, arena))
             });
@@ -355,7 +357,10 @@ impl Arena {
                 }
             }
         });
-        // TODO: tokio::spawn a task that sends the game state to the global server
+        // Spawn a task that sends the game state to the global server
+        if send_to_web {
+            tokio::spawn(async move {web::start(arena_clone).await});
+        }
 
         // Start the server on localhost at the specified port
         warp::serve(routes).run(([127, 0, 0, 1], port)).await;
