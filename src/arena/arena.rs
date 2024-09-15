@@ -25,6 +25,7 @@ pub struct ArenaBuilder {
     increment: Duration,
     static_files: String,
     port : u16,
+    visualize: bool,
 }
 
 
@@ -36,6 +37,7 @@ impl ArenaBuilder {
             initial_time: Duration::from_secs(60),
             increment: Duration::from_secs(0),
             port : 3030,
+            visualize: false,
             static_files: "splendor".to_string(),
         }
     }
@@ -76,8 +78,34 @@ impl ArenaBuilder {
         self
     }
 
+    pub fn visualize(mut self, active: bool) -> Self {
+        self.visualize = active;
+        self
+    }
+
     pub fn build(self) -> Arena {
-        Arena::new(self.binaries.len() as u8, self.binaries, self.initial_time, self.increment, &self.python_interpreter, &self.static_files, self.port)
+        let card_lookup = Arc::new(Card::all());
+        let num_players = self.binaries.len();
+        let game = Game::new(num_players as u8, card_lookup);
+        let clients = self.binaries;
+        let python_interpreter = self.python_interpreter;
+        let initial_time = self.initial_time;
+        let increment = self.increment;
+        let static_files = self.static_files;
+        let port = self.port;
+        let visualize = self.visualize;
+
+        Arena {
+            game: game.clone(),
+            replay: Either::Initialized(Replay::new(game)),
+            clients,
+            game_started: false,
+            clock: Clock::new(num_players, initial_time, increment),
+            python_interpreter : python_interpreter.to_owned(),
+            static_files: static_files.to_owned(),
+            port,
+            visualize,
+        }
     }
 }
 
@@ -93,27 +121,11 @@ pub struct Arena {
     python_interpreter : String,
     static_files: String,
     port : u16,
+    visualize: bool,
 }
 
 
 impl Arena {
-    fn new(players: u8, binaries: Vec<String>, initial_time: Duration, increment: Duration, python_interpreter : &str, static_files : &str, port : u16) -> Arena {
-        let card_lookup = Arc::new(Card::all());
-        let game = Game::new(players, card_lookup);
-        let clients = binaries;
-        let num_players = players as usize;
-
-        Arena {
-            game: game.clone(),
-            replay: Either::Initialized(Replay::new(game)),
-            clients,
-            game_started: false,
-            clock: Clock::new(num_players, initial_time, increment),
-            python_interpreter : python_interpreter.to_owned(),
-            static_files: static_files.to_owned(),
-            port,
-        }
-    }
 
     pub fn is_game_over(&self) -> bool {
         self.game.game_over()
