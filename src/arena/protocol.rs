@@ -153,6 +153,7 @@ pub async fn user_connected(ws: WebSocket, clients: Clients, arena: GlobalArena)
             let time_remaining = time_remaining + Duration::from_millis(10);
 
             match timeout(time_remaining, client_rx.next()).await {
+
                 Ok(Some(msg)) => {
                     trace!("Received message: {:?}", msg);
                     if let Err(e) = msg {
@@ -167,6 +168,7 @@ pub async fn user_connected(ws: WebSocket, clients: Clients, arena: GlobalArena)
                         play_default_action(my_id, clients.clone(), arena.clone()).await;
                         continue;
                     }
+
                     match client_msg.unwrap() {
                         ClientMessage::Action(action) => {
                             if !validate_action(&action, my_id, arena.clone()).await {

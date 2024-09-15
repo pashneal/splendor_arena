@@ -17,6 +17,10 @@ pub enum ArenaRequest {
     /// Authenticate the arena 
     Authenticate{ secret: String },
 
+    /// Heartbeat message so the server knows the client is still alive,
+    /// and doesn't kill it for inactivity
+    Heartbeat,
+
     /// Reconnect current game with a given id to the global server,
     /// so updates can be resumed
     Reconnect{ id : String },
@@ -87,5 +91,6 @@ pub enum GlobalServerResponse {
     Warning(String),
     Error(String),
     Info(String),
+    Timeout,
 }
 
