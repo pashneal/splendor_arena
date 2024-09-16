@@ -313,13 +313,6 @@ impl Arena {
             .and(arena_filter.clone())
             .and_then(clock::current_time_remaining);
 
-        let game = warp::path("game")
-            .and(warp::ws())
-            .and(clients)
-            .and(arena_filter.clone())
-            .map(|ws: warp::ws::Ws, clients, arena| {
-                ws.on_upgrade(move |socket| user_connected(socket, clients, arena))
-            });
 
         let log = warp::path("log")
             .and(warp::ws())
@@ -328,7 +321,6 @@ impl Arena {
         let splendor = warp::path("splendor").and(warp::fs::dir(static_files_loc.clone()));
         let static_files = warp::path("static_files").and(warp::fs::dir(static_files_loc));
 
-        let routes = game.or(log).or(replay).or(time).or(splendor).or(static_files);
 
         tokio::spawn(async move {
             // TODO: use a handshake protocol instead of timing
@@ -357,11 +349,30 @@ impl Arena {
                 }
             }
         });
-        // Spawn a task that sends the game state to the global server
-        if send_to_web {
-            tokio::spawn(async move {web::start(arena_clone).await});
-        }
 
+        let mut web_stream : Option<Outgoing> = None; 
+        if send_to_web {
+            let outgoing = match web::start(arena_clone).await {
+                Ok((outgoing, _)) => outgoing,
+                Err(e) => {
+                    error!("Failed to connect to global server: {}", e);
+                    return;
+                }
+            };
+            web_stream = Some(outgoing);
+
+        }
+        let web_stream_filter = warp::any().map(move || web_stream.clone());
+        let game = warp::path("game")
+            .and(warp::ws())
+            .and(clients)
+            .and(arena_filter.clone())
+            .and(web_stream_filter)
+            .map(|ws: warp::ws::Ws, clients, arena, web_stream| {
+                ws.on_upgrade(move |socket| user_connected(socket, clients, arena, web_stream))
+            });
+
+        let routes = game.or(log).or(replay).or(time).or(splendor).or(static_files);
         // Start the server on localhost at the specified port
         warp::serve(routes).run(([127, 0, 0, 1], port)).await;
     }

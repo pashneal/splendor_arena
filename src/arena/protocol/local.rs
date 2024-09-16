@@ -125,7 +125,7 @@ pub async fn log_stream_connected(socket: WebSocket) {
 }
 
 /// Setup a new client to play the game
-pub async fn user_connected(ws: WebSocket, clients: Clients, arena: GlobalArena) {
+pub async fn user_connected(ws: WebSocket, clients: Clients, arena: GlobalArena, web_stream : Option<Outgoing>) {
     let (client_tx, mut client_rx) = ws.split();
     let my_id = CLIENT_ID.fetch_add(1, Ordering::Relaxed);
     clients.write().await.insert(my_id, client_tx);
@@ -133,6 +133,9 @@ pub async fn user_connected(ws: WebSocket, clients: Clients, arena: GlobalArena)
     let init_clients = clients.clone();
     let init_arena = arena.clone();
     let num_players = init_arena.read().await.players().len();
+
+    let outgoing = web_stream.clone();
+    let outgoing_clone = outgoing.clone();
 
     // Convert messages from the client into a stream of actions
     // So we play them in the game as soon as they come in
@@ -160,7 +163,7 @@ pub async fn user_connected(ws: WebSocket, clients: Clients, arena: GlobalArena)
                 Ok(Some(msg)) => {
                     trace!("Received message: {:?}", msg);
                     if let Err(e) = msg {
-                        play_default_action(my_id, clients.clone(), arena.clone()).await;
+                        play_default_action(my_id, clients.clone(), arena.clone(), outgoing_clone.clone()).await;
                         continue;
                     }
                     let msg = msg.unwrap();
@@ -168,20 +171,20 @@ pub async fn user_connected(ws: WebSocket, clients: Clients, arena: GlobalArena)
                     let client_msg = parse_message(&msg);
                     if let Err(e) = client_msg {
                         error!("error parsing message from json string! {:?}", e);
-                        play_default_action(my_id, clients.clone(), arena.clone()).await;
+                        play_default_action(my_id, clients.clone(), arena.clone(), outgoing_clone.clone()).await;
                         continue;
                     }
 
                     match client_msg.unwrap() {
                         ClientMessage::Action(action) => {
                             if !validate_action(&action, my_id, arena.clone()).await {
-                                play_default_action(my_id, clients.clone(), arena.clone()).await;
+                                play_default_action(my_id, clients.clone(), arena.clone(), outgoing_clone.clone()).await;
                                 continue;
                             }
 
                             trace!("{} played {:?}", my_id, action);
                             arena.write().await.play_action(action);
-                            action_played(clients.clone(), arena.clone()).await;
+                            action_played(clients.clone(), arena.clone(), outgoing_clone.clone()).await;
                         }
                         ClientMessage::Log(log) => {
                             error!("Logs sent to the wrong endpoint! {:?}", log);
@@ -191,7 +194,7 @@ pub async fn user_connected(ws: WebSocket, clients: Clients, arena: GlobalArena)
                 }
                 Ok(_) => panic!("unexpected None"),
                 Err(e) => {
-                    play_default_action(my_id, clients.clone(), arena.clone()).await;
+                    play_default_action(my_id, clients.clone(), arena.clone(), outgoing_clone.clone()).await;
                 }
             }
         }
@@ -204,10 +207,10 @@ pub async fn user_connected(ws: WebSocket, clients: Clients, arena: GlobalArena)
 
     // All users are connected, start the game
     if my_id == num_players - 1 {
-        game_initialized(init_clients, init_arena).await;
+        game_initialized(init_clients, init_arena, outgoing.clone()).await;
     }
 }
-pub async fn play_default_action(my_id : usize, clients: Clients, arena: GlobalArena) {
+pub async fn play_default_action(my_id : usize, clients: Clients, arena: GlobalArena, web_stream : Option<Outgoing>) {
     if arena.read().await.is_game_over() {
         return;
     }
@@ -215,13 +218,13 @@ pub async fn play_default_action(my_id : usize, clients: Clients, arena: GlobalA
     println!("[Turn : {}] [Player {} (crashed/timed out)] Playing a random move...", TURN_COUNTER.load(Ordering::SeqCst), my_id);
     let action = arena.read().await.get_legal_actions().unwrap()[0].clone();
     arena.write().await.play_action(action);
-    action_played(clients.clone(), arena.clone()).await;
+    action_played(clients.clone(), arena.clone(), web_stream.clone()).await;
 }
 
-pub async fn game_initialized(clients: Clients, arena: GlobalArena) {
+pub async fn game_initialized(clients: Clients, arena: GlobalArena, web_stream : Option<Outgoing>) {
     info!("All users locked and loaded! Game starting!");
     arena.write().await.start_game();
-    action_played(clients, arena).await;
+    action_played(clients, arena, web_stream).await;
 }
 
 pub async fn user_initialized(my_id: usize, clients: Clients, arena: GlobalArena) {
@@ -232,7 +235,7 @@ pub async fn user_disconnected(my_id: usize, clients: Clients, arena: GlobalAren
     clients.write().await.remove(&my_id);
 }
 
-pub async fn action_played(clients: Clients, arena: GlobalArena) {
+pub async fn action_played(clients: Clients, arena: GlobalArena, web_stream : Option<Outgoing>) {
     // Auto play for any given player if there is only 1 legal action
     loop {
         // If the game is over, don't do anything else
@@ -259,6 +262,10 @@ pub async fn action_played(clients: Clients, arena: GlobalArena) {
         let action = actions[0].clone();
         trace!("Auto played action: {:?}", action);
         arena.write().await.play_action(action);
+    }
+
+    if  web_stream.is_some() {
+        web::push_game_update(web_stream.unwrap(), arena.clone()).await;
     }
     let last_player = arena.read().await.current_player_num().expect("No current player, is the game started?");
 

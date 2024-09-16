@@ -53,7 +53,6 @@ pub fn push_reconnect() {
 /// TODO: if necessary, batch updates
 pub async fn push_game_update(
     outgoing_stream : Outgoing,
-    incoming_stream : &mut Incoming,
     arena: GlobalArena,
 ) {
     let mut outgoing_stream = outgoing_stream.write().await;
@@ -61,7 +60,7 @@ pub async fn push_game_update(
     let game_update = get_game_update(&arena).await.expect("Failed to get game update");
     let message = serde_json::to_string(&game_update).expect("Failed to serialize game update");
     let message = Message::text(message);
-    trace!("Sending game update to global server...");
+    debug!("Sending game update to global server...");
     outgoing_stream.send(message).await.expect("Failed to send game update");
 }
 
@@ -242,8 +241,11 @@ pub async fn start(arena : GlobalArena) -> Result<(Outgoing, Incoming), String >
     let auth = push_authentication(outgoing_stream.clone(), &mut incoming_stream, arena.clone()).await;
     if !auth {
         return Err("Failed to authenticate with stourney.com".to_owned())
+
+
     }
     let id = push_initial_game(outgoing_stream.clone(), &mut incoming_stream, arena).await;
+
     info!("server gave id: {:?}", id);
 
     if id.is_none() {
