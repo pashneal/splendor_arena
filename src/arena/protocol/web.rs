@@ -65,8 +65,8 @@ pub async fn push_game_update(
 }
 
 pub async fn get_game_update(arena : &Arena) -> Result<ArenaRequest, ()> {
-    let game_state = arena.client_info();
-    match game_state.history.num_moves() {
+    let game_state = arena.small_client_info();
+    match arena.client_info().history.num_moves() {
         0 => {
             return Ok(ArenaRequest::InitializeGame{ info: game_state })
         }

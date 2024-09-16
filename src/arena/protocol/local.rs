@@ -236,6 +236,12 @@ pub async fn user_disconnected(my_id: usize, clients: Clients, arena: GlobalAren
 }
 
 pub async fn action_played(clients: Clients, arena: GlobalArena, web_stream : Option<Outgoing>) {
+    //  An action was played, be sure to send the game state to the web server
+    //  if it is connected
+    let stream = web_stream.clone();
+    if  stream.is_some() {
+        web::push_game_update(stream.unwrap(), arena.clone()).await;
+    }
     // Auto play for any given player if there is only 1 legal action
     loop {
         // If the game is over, don't do anything else
@@ -262,11 +268,13 @@ pub async fn action_played(clients: Clients, arena: GlobalArena, web_stream : Op
         let action = actions[0].clone();
         trace!("Auto played action: {:?}", action);
         arena.write().await.play_action(action);
+        let stream = web_stream.clone();
+        // An action was played, be sure to send the game state to the web server
+        if stream.is_some() {
+            web::push_game_update(stream.unwrap(), arena.clone()).await;
+        }
     }
 
-    if  web_stream.is_some() {
-        web::push_game_update(web_stream.unwrap(), arena.clone()).await;
-    }
     let last_player = arena.read().await.current_player_num().expect("No current player, is the game started?");
 
     if LAST_PLAYER.load(Ordering::SeqCst) != last_player {

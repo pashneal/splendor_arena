@@ -139,6 +139,15 @@ impl Arena {
         self.game.game_over()
     }
 
+    pub fn small_client_info(&self) -> SmallClientInfo{
+        let client_info = self.client_info();
+        SmallClientInfo {
+            board: client_info.board,
+            players: client_info.players,
+            current_player_num: client_info.current_player_num,
+        }
+    }
+
     pub fn client_info(&self) -> ClientInfo {
         let players = self.game.players().iter().map(|p| p.to_public()).collect();
         let legal_actions = self
@@ -391,5 +400,15 @@ pub struct ClientInfo {
     pub legal_actions: Vec<Action>,
     pub time_endpoint_url: String,
 }
+
+/// A struct given to each client that contains all public information and private
+/// information known only to that client.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SmallClientInfo {
+    pub board: Board,
+    pub players: Vec<PlayerPublicInfo>,
+    pub current_player_num: usize,
+}
+
 
 impl JSONable for ClientInfo {}

@@ -6,7 +6,7 @@ use super::*;
 /// sequential change in the game state
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GameUpdate{
-    pub info: ClientInfo,
+    pub info: SmallClientInfo,
     pub update_num: usize
 }
 
@@ -26,7 +26,7 @@ pub enum ArenaRequest {
     Reconnect{ id : String },
 
     /// Request the global server to initialize the game state
-    InitializeGame{ info: ClientInfo },
+    InitializeGame{ info: SmallClientInfo },
 
     /// Request the global server to update the game state
     GameUpdates(Vec<GameUpdate>),
