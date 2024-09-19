@@ -133,9 +133,9 @@ pub async fn push_initial_game(
 
 
         match msg {
-            GlobalServerResponse::Initialized(Initialized::Success{ id }) => {
+            GlobalServerResponse::Initialized(Initialized::Success{ id, url }) => {
                 debug!("Successfully initialized with stourney.com");
-                return Some(id)
+                return Some(url)
             },
             GlobalServerResponse::Initialized(Initialized::Failure{ reason }) => {
                 error!("Failed to initialize with stourney.com: {}", reason);
