@@ -20,7 +20,7 @@ rand = { version = "0.8.5", default-features = false }
 serde = { version = "1.0.197", features = ["serde_derive", "derive"], default-features = false }
 serde_json = { version = "1.0.114", default-features = false }
 tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
-tokio-tungstenite = "0.24.0"
+tokio-tungstenite = { version = "0.24.0", features = ["native-tls"] }
 tungstenite = "0.21.0"
 url = { version = "2.5.0", default-features = false }
 warp = { version = "0.3.6", default-features = false, features = ["websocket"] }

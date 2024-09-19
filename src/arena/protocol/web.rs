@@ -235,6 +235,8 @@ pub async fn start(arena : GlobalArena) -> Result<(Outgoing, Incoming), String >
        }
     };
 
+    debug!("Connected to stourney.com");
+
     let (outgoing_stream, mut incoming_stream) = websocket.split();
     let outgoing_stream = Arc::new(RwLock::new(outgoing_stream));
 

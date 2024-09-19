@@ -1,1 +1,1 @@
-pub const STOURNEY_WEBSOCKET_URL: &str = "ws://localhost:3031/ws";
+pub const STOURNEY_WEBSOCKET_URL: &str = "wss://api.stourney.com/ws";

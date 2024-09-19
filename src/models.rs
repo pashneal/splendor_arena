@@ -67,7 +67,7 @@ pub enum Updated {
 /// concerning initialization of game state
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Initialized {
-    Success{ id : String },
+    Success{ id : String , url : String},
     Failure{ reason: String }
 }
 

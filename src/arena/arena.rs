@@ -329,8 +329,20 @@ impl Arena {
 
         let splendor = warp::path("splendor").and(warp::fs::dir(static_files_loc.clone()));
         let static_files = warp::path("static_files").and(warp::fs::dir(static_files_loc));
+        debug!("Connecting to global server...");
+        let mut web_stream : Option<Outgoing> = None; 
+        if send_to_web {
+            let outgoing = match web::start(arena_clone).await {
+                Ok((outgoing, _)) => outgoing,
+                Err(e) => {
+                    error!("Failed to connect to global server: {}", e);
+                    return;
+                }
+            };
+            web_stream = Some(outgoing);
+        }
 
-
+        debug!("Starting local server on port {}", port);
         tokio::spawn(async move {
             // TODO: use a handshake protocol instead of timing
             for binary in init_binaries {
@@ -359,18 +371,6 @@ impl Arena {
             }
         });
 
-        let mut web_stream : Option<Outgoing> = None; 
-        if send_to_web {
-            let outgoing = match web::start(arena_clone).await {
-                Ok((outgoing, _)) => outgoing,
-                Err(e) => {
-                    error!("Failed to connect to global server: {}", e);
-                    return;
-                }
-            };
-            web_stream = Some(outgoing);
-
-        }
         let web_stream_filter = warp::any().map(move || web_stream.clone());
         let game = warp::path("game")
             .and(warp::ws())
