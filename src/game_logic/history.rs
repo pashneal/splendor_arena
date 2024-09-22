@@ -93,6 +93,10 @@ impl GameHistory {
             .collect();
         GameHistory::from(actions)
     }
+
+    pub fn num_actions(&self) -> usize {
+        self.history.len()
+    }
 }
 
 impl IntoIterator for GameHistory {

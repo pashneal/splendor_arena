@@ -155,6 +155,8 @@ impl Arena {
             .get_legal_actions()
             .expect("Cannot get legal actions");
 
+        let time_endpoint_url = format!("http://127.0.0.1:{}/time", self.port);
+
         ClientInfo {
             board: Board::from_game(&self.game),
             history: self.game.history(),
@@ -162,7 +164,7 @@ impl Arena {
             current_player: self.game.current_player(),
             current_player_num: self.game.current_player_num(),
             legal_actions,
-            time_endpoint_url: "http://127.0.0.1:3030/time".to_string(), // TODO: not hardcoded
+            time_endpoint_url, 
         }
     }
 

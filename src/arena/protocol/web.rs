@@ -6,7 +6,7 @@ use log::{debug, info, trace, error, warn};
 use tokio::net::TcpStream;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message, MaybeTlsStream, WebSocketStream};
 use tokio::sync::RwLock;
-use std::sync::{Arc};
+use std::sync::Arc;
 
 pub type Outgoing = Arc<RwLock<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>;
 pub type Incoming = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
@@ -64,16 +64,18 @@ pub async fn push_game_update(
     outgoing_stream.send(message).await.expect("Failed to send game update");
 }
 
+
 pub async fn get_game_update(arena : &Arena) -> Result<ArenaRequest, ()> {
     let game_state = arena.small_client_info();
-    match arena.client_info().history.num_moves() {
+    match arena.client_info().history.num_actions() {
         0 => {
             return Ok(ArenaRequest::InitializeGame{ info: game_state })
         }
-        num_moves => {
+        _ => {
+            let num_moves = arena.client_info().history.num_moves();
             let game_update = GameUpdate {
                 info: game_state,
-                update_num: num_moves as usize,
+                update_num: num_moves as usize + 1,
             };
             return Ok(ArenaRequest::GameUpdates(vec![game_update]))
         }
