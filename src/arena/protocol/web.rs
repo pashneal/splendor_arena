@@ -248,13 +248,13 @@ pub async fn start(arena : GlobalArena) -> Result<(Outgoing, Incoming), String >
 
 
     }
-    let id = push_initial_game(outgoing_stream.clone(), &mut incoming_stream, arena).await;
+    let url = push_initial_game(outgoing_stream.clone(), &mut incoming_stream, arena).await;
 
-    info!("server gave id: {:?}", id);
-
-    if id.is_none() {
+    if url.is_none() {
         return Err("Failed to initialize game with stourney.com".to_owned())
     }
+    println!("Game connected with stourney.com!");
+    println!("You can view the game at: {}", url.unwrap());
     
     let outgoing_clone = outgoing_stream.clone();
     tokio::spawn( async move {
