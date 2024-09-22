@@ -325,14 +325,19 @@ impl Arena {
             .and_then(clock::current_time_remaining);
 
 
+        let write_to_file = send_to_web.clone();
+        let write_to_file = warp::any().map(move || write_to_file.clone());
         let log = warp::path("log")
             .and(warp::ws())
-            .map(|ws: warp::ws::Ws| ws.on_upgrade(move |socket| log_stream_connected(socket)));
+            .and(write_to_file)
+            .map(|ws: warp::ws::Ws, write_to_file| ws.on_upgrade(move |socket| log_stream_connected(socket, write_to_file)));
 
         let splendor = warp::path("splendor").and(warp::fs::dir(static_files_loc.clone()));
         let static_files = warp::path("static_files").and(warp::fs::dir(static_files_loc));
         debug!("Connecting to global server...");
         let mut web_stream : Option<Outgoing> = None; 
+
+        // Send to stourney.com if send_to_web is true
         if send_to_web {
             let outgoing = match web::start(arena_clone).await {
                 Ok((outgoing, _)) => outgoing,

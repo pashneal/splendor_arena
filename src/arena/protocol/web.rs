@@ -245,16 +245,16 @@ pub async fn start(arena : GlobalArena) -> Result<(Outgoing, Incoming), String >
     let auth = push_authentication(outgoing_stream.clone(), &mut incoming_stream, arena.clone()).await;
     if !auth {
         return Err("Failed to authenticate with stourney.com".to_owned())
-
-
     }
+
     let url = push_initial_game(outgoing_stream.clone(), &mut incoming_stream, arena).await;
 
     if url.is_none() {
         return Err("Failed to initialize game with stourney.com".to_owned())
     }
     println!("Game connected with stourney.com!");
-    println!("You can view the game at: {}", url.unwrap());
+    println!("You can view the ongoing game at: {}", url.unwrap());
+    println!("The game is running in the background and all logs will go to ./{}", constants::DEFAULT_LOG_FILENAME);
     
     let outgoing_clone = outgoing_stream.clone();
     tokio::spawn( async move {

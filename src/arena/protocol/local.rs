@@ -1,6 +1,7 @@
 // Helper functions local game server that interacts with the game logic, validates moves
 // from the clients, and send the game state back to the clients after each move
 
+use crate::constants::DEFAULT_LOG_FILENAME;
 use super::*;
 use std::collections::HashMap;
 use std::sync::{
@@ -88,11 +89,27 @@ pub async fn validate_action(action: &Action, player_id: usize, arena: GlobalAre
 
 }
 
-pub async fn log_stream_connected(socket: WebSocket) {
+pub async fn log_stream_connected(socket: WebSocket, write_to_file: bool) {
     // TODO: This makes an assumption that
     // the client that last connected is the one that is logging
     // This may not be a good assumption
     let id = CLIENT_ID.load(Ordering::Relaxed) - 1;
+    
+    let mut file = if write_to_file {
+        let file = tokio::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .append(true)
+            .open(DEFAULT_LOG_FILENAME)
+            .await;
+        if let Err(e) = file {
+            error!("error opening file! {:?}", e);
+            return;
+        }
+        Some(file.unwrap())
+    } else {
+        None
+    };
 
     let (_tx, mut rx) = socket.split();
     while let Some(msg) = rx.next().await {
@@ -113,12 +130,23 @@ pub async fn log_stream_connected(socket: WebSocket) {
                 break;
             }
             ClientMessage::Log(log) => {
-                println!(
+                let message = format!(
                     "[Turn : {}] [Player {}]: {}",
                     TURN_COUNTER.load(Ordering::SeqCst),
                     id,
                     log
                 );
+
+                if write_to_file  {
+                    let file = file.as_mut().unwrap();
+                    if let Err(e) = tokio::io::AsyncWriteExt::write_all(file, (message + "\n").as_bytes()).await {
+                        error!("error writing to file! {:?}", e);
+                        break;
+                    }
+
+                } else {
+                    println!("{}", message);
+                }
             }
         }
     }
