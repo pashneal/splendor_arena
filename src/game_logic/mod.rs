@@ -14,7 +14,7 @@ pub use self::board::*;
 pub use self::game::*;
 pub use self::history::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 enum Phase {
     PlayerStart,            // Take some player action
     PlayerGemCapExceeded,   // [Optional] Player has > 10 gems

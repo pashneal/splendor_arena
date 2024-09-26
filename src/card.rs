@@ -79,7 +79,7 @@ impl Cost {
 
 pub type CardId = u8;
 
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(PartialEq, Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct Card {
     points: u8,
     cost: Cost,

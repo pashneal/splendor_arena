@@ -15,8 +15,9 @@ use std::sync::Arc;
 use cached::proc_macro::cached;
 
 use log::{debug, error, info, trace};
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Game {
     players: Vec<Player>,
     bank: Gems,
@@ -25,7 +26,7 @@ pub struct Game {
     nobles: Vec<Noble>,
     dealt_cards: Vec<Vec<CardId>>,
     current_phase: Phase,
-    card_lookup: Arc<Vec<Card>>,
+    card_lookup: Vec<Card>,
     history: GameHistory,
     deadlock_count: u8,
 }
@@ -79,8 +80,8 @@ impl Game {
     }
 
     /// Get the array that maps card ids to cards
-    pub fn card_lookup(&self) -> Arc<Vec<Card>> {
-        self.card_lookup.clone()
+    pub fn card_lookup<'a>(&'a self) -> &'a Vec<Card> {
+        self.card_lookup.as_ref()
     }
 
     /// Get the cards that have been dealt to the board
@@ -146,6 +147,8 @@ impl Game {
         dealt_cards.push(decks[0].drain(0..4).map(|card| card.id()).collect());
         dealt_cards.push(decks[1].drain(0..4).map(|card| card.id()).collect());
         dealt_cards.push(decks[2].drain(0..4).map(|card| card.id()).collect());
+
+        let card_lookup = card_lookup.as_ref().clone();
 
         Game {
             players: (0..players).map(|_| Player::new()).collect(),

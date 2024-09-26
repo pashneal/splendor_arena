@@ -1,9 +1,10 @@
 use crate::card::Cost;
 use crate::gems::Gems;
+use serde::{Deserialize, Serialize};
 
 pub type NobleId = u8;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Noble {
     pub points: u8,
     pub id: NobleId,

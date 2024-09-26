@@ -288,7 +288,7 @@ pub async fn board_nobles(arena: GlobalArena) -> Result<impl Reply, Rejection> {
 
 /// Converts a list of card ids to a list of JSCards
 /// using the conventions laid out in the frontend
-fn to_js_cards(card_ids: Vec<Vec<CardId>>, card_lookup: Arc<Vec<Card>>) -> Vec<Vec<JSCard>> {
+fn to_js_cards(card_ids: Vec<Vec<CardId>>, card_lookup: &Vec<Card>) -> Vec<Vec<JSCard>> {
     let cards = card_ids
         .iter()
         .flatten()
@@ -339,9 +339,13 @@ pub async fn board_cards(arena: GlobalArena) -> Result<impl Reply, Rejection> {
             "No replay available".to_string(),
         ))),
         Some(replay) => {
-            let card_lookup = replay.read().await.inner.viewable_game.card_lookup();
-            let cards = replay.read().await.inner.viewable_game.cards();
+            let read = replay.read();
+            let game = &read.await.inner.viewable_game;
+
+            let card_lookup = game.card_lookup();
+            let cards = game.cards();
             let js_cards = to_js_cards(cards, card_lookup);
+
             Ok(warp::reply::json(&EndpointReply::Success(Success::Cards(
                 js_cards,
             ))))
@@ -411,7 +415,7 @@ pub async fn board_bank(arena: GlobalArena) -> Result<impl Reply, Rejection> {
 
 ///  Converts metadata about the players to a list of JSPlayer
 ///  using the conventions laid out in the frontend
-pub fn to_js_players(players: &Vec<Player>, card_lookup: Arc<Vec<Card>>) -> Vec<JSPlayer> {
+pub fn to_js_players(players: &Vec<Player>, card_lookup: &Vec<Card>) -> Vec<JSPlayer> {
     let mut js_players = Vec::new();
     for player in players {
         let developments = player.developments();
@@ -485,9 +489,13 @@ pub async fn board_players(arena: GlobalArena) -> Result<impl Reply, Rejection> 
             "No replay available".to_string(),
         ))),
         Some(replay) => {
-            let card_lookup = replay.read().await.inner.viewable_game.card_lookup();
-            let players = to_js_players(replay.read().await.inner.viewable_game.players()
-                                        , card_lookup);
+            let read = replay.read();
+            let replay = read.await;
+            let game = &replay.inner.viewable_game;
+
+            let card_lookup = game.card_lookup();
+
+            let players = to_js_players(game.players() , card_lookup);
             Ok(warp::reply::json(&EndpointReply::Success(Success::Players(
                 players,
             ))))
