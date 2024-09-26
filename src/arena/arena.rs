@@ -119,7 +119,7 @@ impl ArenaBuilder {
 /// given by JSON messages across local websockets that update the game state.
 pub struct Arena {
     game: Game,  // The Splendor game state
-    pub clients: Vec<String>, // The binaries or python files to be run as clients
+    clients: Vec<String>, // The binaries or python files to be run as clients
     clock: Clock, // The clock for keeping track of each player's time
     game_started: bool, // Whether the game has started
     replay: Either<Replay<Initialized>, FinalizedReplay>, // A representation of the game including
