@@ -12,7 +12,7 @@ pub struct Noble {
 }
 
 impl Noble {
-    pub fn from_id(id: NobleId) -> Noble{
+    pub fn from_id(id: NobleId) -> Noble {
         Noble::all()[id as usize].clone()
     }
 

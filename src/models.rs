@@ -1,21 +1,21 @@
-use serde::{Deserialize, Serialize};
 use super::*;
+use serde::{Deserialize, Serialize};
 
-/// Updates the game state with the newest client info 
+/// Updates the game state with the newest client info
 /// and the number of the updates starting from 0 and incrementing by 1 for each
 /// sequential change in the game state
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct GameUpdate{
+pub struct GameUpdate {
     pub info: SmallClientInfo,
-    pub update_num: usize
+    pub update_num: usize,
 }
 
 /// Represents the information requests that the client can send to
 /// the global stourney server to visualize a running or completed splendor game
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ArenaRequest {
-    /// Authenticate the arena 
-    Authenticate{ secret: String },
+    /// Authenticate the arena
+    Authenticate { secret: String },
 
     /// Heartbeat message so the server knows the client is still alive,
     /// and doesn't kill it for inactivity
@@ -23,20 +23,20 @@ pub enum ArenaRequest {
 
     /// Reconnect current game with a given id to the global server,
     /// so updates can be resumed
-    Reconnect{ id : String },
+    Reconnect { id: String },
 
     /// Request the global server to initialize the game state
-    InitializeGame{ info: SmallClientInfo },
+    InitializeGame { info: SmallClientInfo },
 
     /// Request the global server to update the game state
     GameUpdates(Vec<GameUpdate>),
 
     /// Announce to server that the game is over,
     /// therefore indicating that the last successful update was the final update
-    GameOver{ total_updates : usize },
+    GameOver { total_updates: usize },
 
-    /// Reports a debug message to the global server 
-    DebugMessage(String)
+    /// Reports a debug message to the global server
+    DebugMessage(String),
 }
 
 /// A response from the global stourney server to a client request
@@ -44,7 +44,7 @@ pub enum ArenaRequest {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Authenticated {
     Success,
-    Failure{ reason: String }
+    Failure { reason: String },
 }
 
 /// A game state update response from the server
@@ -52,23 +52,25 @@ pub enum Authenticated {
 pub enum Updated {
     /// Indicates that the server has updated the game state, and returns
     /// the number of successful updates that have been processed since the initialization
-    Success{ num_lifetime_updates: usize },
+    Success { num_lifetime_updates: usize },
 
     /// Indicates that the server was unable to update the game state,
     /// and returns the number of previously successfully processed updates
-    Failure{ reason: String, num_lifetime_updates: usize },
+    Failure {
+        reason: String,
+        num_lifetime_updates: usize,
+    },
 
     /// Acknowledges that the game is over
-    GameOverAck
+    GameOverAck,
 }
-
 
 /// A response from the global stourney server to a client request
 /// concerning initialization of game state
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Initialized {
-    Success{ id : String , url : String},
-    Failure{ reason: String }
+    Success { id: String, url: String },
+    Failure { reason: String },
 }
 
 /// A response from the global stourney server concerning whether
@@ -76,9 +78,8 @@ pub enum Initialized {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Reconnected {
     Success,
-    Failure{ reason: String }
+    Failure { reason: String },
 }
-
 
 /// Represents the information that the global stourney server
 /// can send in response to a client request or as a broadcast
@@ -93,4 +94,3 @@ pub enum GlobalServerResponse {
     Info(String),
     Timeout,
 }
-

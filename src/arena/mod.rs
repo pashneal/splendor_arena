@@ -7,14 +7,13 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
 
-pub mod protocol;
-pub mod replay;
 pub mod arena;
 pub mod clock;
+pub mod pool;
+pub mod protocol;
+pub mod replay;
 
-pub use protocol::*;
 pub use arena::*;
-use replay::*;
 use clock::*;
-
-
+pub use protocol::*;
+use replay::*;

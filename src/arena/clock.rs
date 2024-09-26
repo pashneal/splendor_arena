@@ -1,6 +1,6 @@
+use super::*;
 use std::time::Duration;
 use std::time::SystemTime;
-use super::*;
 use warp::{Filter, Rejection, Reply};
 
 /// Keeps track of the amount of time each player has left
@@ -14,9 +14,8 @@ pub struct Clock {
     timed_out: Vec<bool>,
 }
 
-
 impl Clock {
-    pub fn new(num_players : usize, initial_time: Duration, increment: Duration) -> Clock {
+    pub fn new(num_players: usize, initial_time: Duration, increment: Duration) -> Clock {
         Clock {
             total_time: vec![initial_time; num_players],
             increment,
@@ -33,15 +32,13 @@ impl Clock {
             return;
         }
         let num_players = self.total_time.len();
-        self.current_player = self.current_player.map(|x| {
-            (x + 1) % num_players
-        });
+        self.current_player = self.current_player.map(|x| (x + 1) % num_players);
     }
 
     // Start the clock for the current player
     // If there is no current player, automatically set the current player to 0
     pub fn start(&mut self) {
-        if  self.current_player.is_none() {
+        if self.current_player.is_none() {
             self.current_player = Some(0);
         }
         let current_player = self.current_player.unwrap();
@@ -89,10 +86,7 @@ struct Response {
     time_remaining: Duration,
 }
 
-
 pub async fn current_time_remaining(arena: GlobalArena) -> Result<impl Reply, Rejection> {
     let time_remaining = arena.read().await.time_remaining();
-    Ok(warp::reply::json(&Response {
-        time_remaining,
-    }))
+    Ok(warp::reply::json(&Response { time_remaining }))
 }

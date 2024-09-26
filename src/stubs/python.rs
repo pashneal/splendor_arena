@@ -1,10 +1,10 @@
-use lazy_static::lazy_static; 
-use pyo3::prelude::*;
 use crate::*;
-use tungstenite::{connect, Message};
-use url::Url;
+use lazy_static::lazy_static;
+use pyo3::prelude::*;
 use serde::Deserialize;
 use std::time::Duration;
+use tungstenite::{connect, Message};
+use url::Url;
 
 lazy_static! {
     static ref CARD_LOOKUP: [Card; 90] = Card::all_const();
@@ -322,9 +322,7 @@ impl PyAction {
             PyActionType::ReserveFaceUp => Action::Reserve(self.card_id()),
             PyActionType::ReserveFaceDown => Action::ReserveHidden(self.tier()),
             PyActionType::Discard => Action::Discard(self.gems().into_gems()),
-            PyActionType::Purchase => {
-                Action::Purchase((self.card_id(), self.gems().into_gems()))
-            }
+            PyActionType::Purchase => Action::Purchase((self.card_id(), self.gems().into_gems())),
             PyActionType::AttractNoble => Action::AttractNoble(self.noble_id()),
             PyActionType::Pass => Action::Pass,
             PyActionType::Continue => Action::Continue,
@@ -623,8 +621,11 @@ impl PyClientInfo {
     }
 
     pub fn time_remaining(&self) -> f64 {
-        let response = reqwest::blocking::get(&self.time_endpoint_url).expect("Server did not response with time remaining");
-        let response: TimeRemaining = response.json().expect("Could not parse time remaining response");
+        let response = reqwest::blocking::get(&self.time_endpoint_url)
+            .expect("Server did not response with time remaining");
+        let response: TimeRemaining = response
+            .json()
+            .expect("Could not parse time remaining response");
         response.time_remaining.as_millis() as f64
     }
 }

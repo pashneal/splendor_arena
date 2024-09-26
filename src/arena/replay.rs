@@ -1,8 +1,8 @@
 use super::*;
 use crate::card::CardId;
 use crate::gem::Gem;
-use crate::nobles::Noble;
 use crate::gems::Gems;
+use crate::nobles::Noble;
 use log::trace;
 use std::collections::HashMap;
 use std::marker::PhantomData;
@@ -38,7 +38,7 @@ pub struct Initialized {
 
 /// A replay state of a Splendor game
 ///
-/// Contains the full history and 
+/// Contains the full history and
 /// relevant information to replay the game
 #[derive(Debug, Clone)]
 pub struct Finalized {
@@ -131,7 +131,7 @@ pub struct JSDeck {
 #[derive(Debug, Clone, Serialize)]
 pub struct JSPlayer {
     developments: JSTokens,
-    gems : JSTokens,
+    gems: JSTokens,
     #[serde(rename = "totalGems")]
     total_gems: u32,
     #[serde(rename = "reservedCards")]
@@ -423,14 +423,12 @@ pub fn to_js_players(players: &Vec<Player>, card_lookup: &Vec<Card>) -> Vec<JSPl
 
         let mut js_developments = Vec::new();
         let mut js_gems = Vec::new();
-        let mut js_cards =  Vec::new();
-
+        let mut js_cards = Vec::new();
 
         for gem in Gem::all_expect_gold() {
             let index = map.get(&gem).unwrap();
             let count = developments[gem];
             js_developments.push((*index, count));
-
         }
 
         for gem in Gem::all() {
@@ -469,10 +467,10 @@ pub fn to_js_players(players: &Vec<Player>, card_lookup: &Vec<Card>) -> Vec<JSPl
         let total_points = player.total_points();
         let noble_points = player.noble_points();
 
-        js_players.push(JSPlayer { 
-            developments : js_developments,
-            gems : js_gems,
-            reserved_cards : js_cards, 
+        js_players.push(JSPlayer {
+            developments: js_developments,
+            gems: js_gems,
+            reserved_cards: js_cards,
             total_gems,
             total_points,
             noble_points,
@@ -495,10 +493,10 @@ pub async fn board_players(arena: GlobalArena) -> Result<impl Reply, Rejection> 
 
             let card_lookup = game.card_lookup();
 
-            let players = to_js_players(game.players() , card_lookup);
-            Ok(warp::reply::json(&EndpointReply::Success(Success::Players(
-                players,
-            ))))
+            let players = to_js_players(game.players(), card_lookup);
+            Ok(warp::reply::json(&EndpointReply::Success(
+                Success::Players(players),
+            )))
         }
     }
 }

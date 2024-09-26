@@ -13,14 +13,11 @@
 /// for the user interface across all supported languages.
 ///
 /// Changing this may break compatibility with the engine!
-
 use derive_more::{Display, Error};
-use std::time::Duration;
 use serde::Deserialize;
+use std::time::Duration;
 
-pub use crate::{
-    run_bot, CardId, Cost, GameResults, Gem, Gems, Log, Noble, NobleId, Runnable,
-};
+pub use crate::{run_bot, CardId, Cost, GameResults, Gem, Gems, Log, Noble, NobleId, Runnable};
 
 pub use crate as splendor_tourney;
 
@@ -60,13 +57,17 @@ impl Action {
     /// Convert a splendor_tourney::Action into an Action
     fn from(action: splendor_tourney::Action) -> Self {
         match action {
-            splendor_tourney::Action::TakeDouble(gem) => Action::TakeGems(Gems::one(gem) + Gems::one(gem)),
+            splendor_tourney::Action::TakeDouble(gem) => {
+                Action::TakeGems(Gems::one(gem) + Gems::one(gem))
+            }
             splendor_tourney::Action::TakeDistinct(gems) => Action::TakeGems(Gems::from_set(&gems)),
             splendor_tourney::Action::Reserve(card_id) => Action::ReserveFaceUp(card_id),
             splendor_tourney::Action::ReserveHidden(tier) => Action::ReserveFaceDown(tier),
             splendor_tourney::Action::Purchase((card_id, gems)) => Action::Purchase(card_id, gems),
             splendor_tourney::Action::Discard(gems) => Action::DiscardGems(gems),
-            splendor_tourney::Action::AttractNoble(noble_id) => Action::AttractNoble(Noble::from_id(noble_id)),
+            splendor_tourney::Action::AttractNoble(noble_id) => {
+                Action::AttractNoble(Noble::from_id(noble_id))
+            }
             splendor_tourney::Action::Pass => Action::Pass,
             splendor_tourney::Action::Continue => Action::Continue,
         }
@@ -360,4 +361,3 @@ impl GameInfo {
         response.time_remaining
     }
 }
-

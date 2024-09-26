@@ -1,8 +1,8 @@
 use crate::card::{Card, CardId};
 use crate::gem::Gem;
+use crate::gems::Gems;
 use crate::nobles::*;
 use crate::player::Player;
-use crate::gems::Gems;
 
 use rand::seq::SliceRandom;
 use rand::thread_rng;
@@ -15,7 +15,7 @@ use std::sync::Arc;
 use cached::proc_macro::cached;
 
 use log::{debug, error, info, trace};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Game {
@@ -119,7 +119,7 @@ impl Game {
         self.history.clone()
     }
 
-    /// Initialize a new game with the given number of players 
+    /// Initialize a new game with the given number of players
     /// and a global array of cards where indices are card ids
     pub fn new(players: u8, card_lookup: Arc<Vec<Card>>) -> Game {
         let mut decks = Vec::new();
@@ -164,10 +164,10 @@ impl Game {
         }
     }
 
-    /// Given a game state return all 
+    /// Given a game state return all
     /// legal actions that can be taken
     ///
-    /// returns None if the game is deadlocked or over 
+    /// returns None if the game is deadlocked or over
     pub fn get_legal_actions(&self) -> Option<Vec<Action>> {
         if self.deadlock_count == 2 * self.players.len() as u8 {
             return None;
@@ -617,7 +617,7 @@ impl Game {
 
     /// Given a game state, play random legal moves until the game is over
     /// Returns the winner of the game
-    /// Returns None if there is no clear winner 
+    /// Returns None if there is no clear winner
     pub fn rollout(&mut self) -> Option<usize> {
         loop {
             let actions = self.get_legal_actions();
@@ -839,12 +839,7 @@ pub mod test {
 
         game.play_action(Purchase((
             8,
-            Gems::from_vec(&vec![
-                Gem::Diamond,
-                Gem::Emerald,
-                Gem::Ruby,
-                Gem::Onyx,
-            ]),
+            Gems::from_vec(&vec![Gem::Diamond, Gem::Emerald, Gem::Ruby, Gem::Onyx]),
         )));
         game.play_action(Pass);
         game.play_action(Continue);

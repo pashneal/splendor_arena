@@ -15,7 +15,6 @@ pub struct Gems {
 }
 
 impl Gems {
-
     pub fn all() -> Vec<Gem> {
         Gem::all()
     }

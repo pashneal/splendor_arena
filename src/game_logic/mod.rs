@@ -1,8 +1,8 @@
 use crate::card::CardId;
 use crate::gem::Gem;
+use crate::gems::Gems;
 use crate::nobles::*;
 use crate::player::Player;
-use crate::gems::Gems;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
@@ -16,10 +16,10 @@ pub use self::history::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 enum Phase {
-    PlayerStart,            // Take some player action
-    PlayerGemCapExceeded,   // [Optional] Player has > 10 gems
-    NobleAction,            // See if any nobles get attracted (multiple may be attracted)
-    PlayerActionEnd,        // Finish the turn and see if the round should continue
+    PlayerStart,          // Take some player action
+    PlayerGemCapExceeded, // [Optional] Player has > 10 gems
+    NobleAction,          // See if any nobles get attracted (multiple may be attracted)
+    PlayerActionEnd,      // Finish the turn and see if the round should continue
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -43,11 +43,7 @@ pub enum Action {
     Continue,
 }
 
-pub fn choose_distinct_gems(
-    gems: &mut Gems,
-    running: &mut Gems,
-    num_chosen: u32,
-) -> HashSet<Gems> {
+pub fn choose_distinct_gems(gems: &mut Gems, running: &mut Gems, num_chosen: u32) -> HashSet<Gems> {
     let mut total_choices = HashSet::new();
     if num_chosen == 0 {
         total_choices.insert(running.clone());
