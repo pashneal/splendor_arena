@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+##  [0.1.x] - 2024-09-26
+
+### Breaking Changes
+
+- The `Arena` no longer exposes clients array to users of the Arena, instead
+  the `Arena` now exposes a `clients` method that returns a reference to the
+  clients array.
+
 ## [0.1.x] - 2024-09-15
 
 ### Added

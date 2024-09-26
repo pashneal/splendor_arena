@@ -135,6 +135,9 @@ pub struct Arena {
 
 
 impl Arena {
+    pub fn clients(&self) -> &Vec<String> {
+        &self.clients
+    }
     pub fn is_game_over(&self) -> bool {
         self.game.game_over()
     }
