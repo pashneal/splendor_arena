@@ -849,9 +849,9 @@ pub struct PyLog {
 }
 
 impl PyLog {
-    pub fn new(port: u16) -> Self {
+    pub fn new(url: &str, port: u16, client_id: u64) -> Self {
         PyLog {
-            log: Log::new(port),
+            log: Log::new(url, port, client_id),
         }
     }
 }
@@ -869,9 +869,13 @@ impl PyLog {
 
 #[pyfunction]
 pub fn run_python_bot(py: Python, bot_class: &PyAny) {
-    let port = 3030;
+    let args = get_args();
+    let port = args.port;
+    let url = args.url.unwrap();
+    let game_id = args.game_id.unwrap();
+    let client_id = args.client_id;
 
-    let url = format!("ws://127.0.0.1:{}/game", port);
+    let url = format!("{}:{}/game/{}/{}",url, port, game_id, client_id);
     let url = Url::parse(&url).unwrap();
     let (mut game_socket, _) = connect(url).expect("Can't connect to the game server");
 

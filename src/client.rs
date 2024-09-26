@@ -11,10 +11,10 @@ pub struct Log {
 }
 
 impl Log {
-    pub fn new(port: u16) -> Self {
-        let url = format!("ws://127.0.0.1:{}/log", port);
+    pub fn new(url : &str, port: u16, client_id : u64) -> Self {
+        let url = format!("{}:{}/log/{}", url, port, client_id);
         let url = Url::parse(&url).unwrap();
-        let (socket, _) = connect(url).expect("Can't connect to the game server");
+        let (socket, _) = connect(url).expect("Can't connect to the log server");
         Self { socket }
     }
 
@@ -40,22 +40,60 @@ pub struct Args {
     /// The port to connect to
     #[arg(short, long)]
     port: u16,
+
+    /// The game url to connect to
+    #[arg(short, long)]
+    url: Option<String>,
+
+    /// The game id to connect to
+    #[arg(short, long)]
+    game_id: Option<u64>,
+
+    /// The client id to connect as
+    #[arg(short, long)]
+    client_id: u64,
 }
 
+/// Public function to allow Python and Rust users 
+/// to have the same interface on the command line
+pub fn get_args() -> Args {
+    let mut args = Args::parse();
+    if args.url.is_none() {
+        args.url = Some("ws://127.0.0.1".to_string());
+    }
+    if args.game_id.is_none() {
+        args.game_id = Some(0);
+    }
+    args
+}
+
+/// TODO: move to rust stubs
 /// The protocol for communication and running the bot between the client and
 /// the server. Sends logs and actions to the server when appropriate.
 pub fn run_bot<C: From<ClientInfo>, A: Into<Action>, B: Runnable<C, A> + Default>() {
-    let args = Args::parse();
+    let args = get_args();
     let port = args.port;
+    let base_url = args.url.unwrap();
+    let game_id = args.game_id.unwrap();
+    let client_id = args.client_id;
 
-    let url = format!("ws://127.0.0.1:{}/game", port);
+    println!("Connecting to the game server...");
+    println!("Port: {}", port);
+    println!("Base URL: {}", base_url);
+    println!("Game ID: {}", game_id);
+    println!("Client ID: {}", client_id);
+
+    let url = format!("{}:{}/game/{}/{}", base_url, port, game_id, client_id);
+    println!("Connecting to: {}", url);
+    println!("");
     let url = Url::parse(&url).unwrap();
+    println!("Url: {:?}", url);
     let (mut game_socket, _) = connect(url).expect("Can't connect to the game server");
 
     // Give the server a chance to start up
     std::thread::sleep(std::time::Duration::from_millis(100));
 
-    let mut log = Log::new(port);
+    let mut log = Log::new(&base_url, port, client_id);
 
     let mut bot = B::default();
     bot.initialize(&mut log);

@@ -79,6 +79,10 @@ impl ArenaBuilder {
         let port = self.port;
         let send_to_web = self.send_to_web;
         let api_key = self.api_key;
+        let mut clients = Vec::new();
+        for _ in 0..num_players {
+            clients.push(ClientId(rand::random()));
+        }
 
         Arena {
             game: game.clone(),
@@ -86,16 +90,18 @@ impl ArenaBuilder {
             game_started: false,
             clock: Clock::new(num_players, initial_time, increment),
             port,
+            clients,
             send_to_web,
             api_key,
         }
     }
+
 }
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
-pub struct GameId(u64);
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
-pub struct ClientId(u64);
+#[derive(Debug, Clone, Hash, Eq, PartialEq, Copy)]
+pub struct GameId(pub u64);
+#[derive(Debug, Clone, Hash, Eq, PartialEq, Copy)]
+pub struct ClientId(pub u64);
 
 /// A module for running games across multiple clients. Can be fed binaries
 /// and run them in a tournament style. The protocol for communication is
@@ -107,6 +113,7 @@ pub struct Arena {
     replay: Either<Replay<Initialized>, FinalizedReplay>, // A representation of the game including
     // the ability to walk through all
     // previous moves
+    clients: Vec<ClientId>, // The clients connected to the game
     port: u16,               // The port to run the local web server on
     send_to_web: bool,       // Whether to send the game state to the global server
     api_key: Option<String>, // The api key to use for sending the game state to the global server
@@ -184,6 +191,13 @@ impl Arena {
         self.game.get_legal_actions()
     }
 
+    pub fn current_player_id(&self) -> Option<ClientId> {
+        if self.game_started {
+            Some(self.clients[self.game.current_player_num()])
+        } else {
+            None
+        }
+    }
     pub fn current_player_num(&self) -> Option<usize> {
         if self.game_started {
             Some(self.game.current_player_num())
@@ -216,6 +230,14 @@ impl Arena {
         self.game_started = true;
         self.clock.start();
     }
+
+    pub fn num_moves(&self) -> usize {
+        self.game.history().num_moves() as usize
+    }
+
+    pub fn allowed_clients(&self) -> Vec<ClientId> {
+        self.clients.clone()
+    }
 }
 
 impl Arena {
@@ -245,9 +267,9 @@ impl Arena {
         let write_to_file = send_to_web.clone();
         let write_to_file = warp::any().map(move || write_to_file.clone());
 
-        let log = warp::path("log").and(warp::ws()).and(write_to_file).map(
-            |ws: warp::ws::Ws, write_to_file| {
-                ws.on_upgrade(move |socket| log_stream_connected(socket, write_to_file))
+        let log = warp::path!("log" / u64 ).and(warp::ws()).and(write_to_file).map(
+            |clientid, ws: warp::ws::Ws, write_to_file| {
+                ws.on_upgrade(move |socket| log_stream_connected(ClientId(clientid), socket, write_to_file))
             },
         );
 
@@ -269,18 +291,22 @@ impl Arena {
         debug!("Starting local server on port {}", port);
 
         let web_stream_filter = warp::any().map(move || web_stream.clone());
-        let game = warp::path("game")
+        let game = warp::path!("game" / u64 / u64)
             .and(warp::ws())
             .and(clients_filter)
             .and(arena_filter.clone())
             .and(web_stream_filter)
-            .map(|ws: warp::ws::Ws, clients, arena, web_stream| {
-                ws.on_upgrade(move |socket| user_connected(socket, clients, arena, web_stream))
+            .map(|_gameid, clientid, ws: warp::ws::Ws, clients, arena, web_stream| {
+                ws.on_upgrade(move |socket| user_connected(ClientId(clientid), socket, clients, arena, web_stream))
             });
 
         let routes = game.or(log).or(time);
         // Start the server on localhost at the specified port
         warp::serve(routes).run(([127, 0, 0, 1], port)).await;
+    }
+
+    pub fn spawn(self) -> tokio::task::JoinHandle<()> {
+        tokio::spawn(self.launch())
     }
 }
 

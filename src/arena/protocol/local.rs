@@ -28,7 +28,6 @@ const TIMEOUT: Duration = Duration::from_secs(4);
 
 static CLIENT_ID: AtomicUsize = AtomicUsize::new(0);
 static TURN_COUNTER: AtomicUsize = AtomicUsize::new(0);
-static LAST_PLAYER: AtomicUsize = AtomicUsize::new(5);
 
 #[derive(Debug, Display, Error)]
 pub enum ParseError {
@@ -57,10 +56,10 @@ fn parse_message(message_text: &Message) -> Result<ClientMessage, ParseError> {
     Ok(client_msg)
 }
 
-pub async fn validate_action(action: &Action, player_id: usize, arena: GlobalArena) -> bool {
+pub async fn validate_action(action: &Action, client_id: ClientId, arena: GlobalArena) -> bool {
     // -> The current player is not timed out
     if arena.read().await.is_timed_out() {
-        error!("Player {} is timed out!", player_id);
+        error!("Player {:?} is timed out!", client_id);
         return false;
     }
 
@@ -78,19 +77,16 @@ pub async fn validate_action(action: &Action, player_id: usize, arena: GlobalAre
     }
 
     // -> Is the correct player's turn
-    if arena.read().await.current_player_num() != Some(player_id) {
-        error!("Not player {}'s turn!", player_id);
+    if arena.read().await.current_player_id() != Some(client_id) {
+        error!("Not player {:?}'s turn!", client_id);
         return false;
     }
 
     return true;
 }
 
-pub async fn log_stream_connected(socket: WebSocket, write_to_file: bool) {
-    // TODO: This makes an assumption that
-    // the client that last connected is the one that is logging
-    // This may not be a good assumption
-    let id = CLIENT_ID.load(Ordering::Relaxed) - 1;
+pub async fn log_stream_connected(client_id : ClientId, socket: WebSocket, write_to_file: bool) {
+    let id = client_id;
 
     let mut file = if write_to_file {
         let file = tokio::fs::OpenOptions::new()
@@ -128,7 +124,7 @@ pub async fn log_stream_connected(socket: WebSocket, write_to_file: bool) {
             }
             ClientMessage::Log(log) => {
                 let message = format!(
-                    "[Turn : {}] [Player {}]: {}",
+                    "[Turn : {}] [Player {:?}]: {}",
                     TURN_COUNTER.load(Ordering::SeqCst),
                     id,
                     log
@@ -152,13 +148,28 @@ pub async fn log_stream_connected(socket: WebSocket, write_to_file: bool) {
 
 /// Setup a new client to play the game
 pub async fn user_connected(
+    client_id: ClientId,
     ws: WebSocket,
     clients: Clients,
     arena: GlobalArena,
     web_stream: Option<Outgoing>,
 ) {
     let (client_tx, mut client_rx) = ws.split();
-    let my_id = CLIENT_ID.fetch_add(1, Ordering::Relaxed);
+    let my_id = client_id;
+
+    let allowed = arena.read().await.allowed_clients();
+    if !allowed.contains(&my_id) {
+        error!("Player {:?} not allowed to play!", my_id);
+        error!("Exiting...");
+        return;
+    }
+
+    if clients.read().await.get(&my_id).is_some() {
+        error!("Player {:?} already connected!", my_id);
+        error!("Exiting...");
+        return;
+    }
+
     clients.write().await.insert(my_id, client_tx);
 
     let init_clients = clients.clone();
@@ -174,7 +185,7 @@ pub async fn user_connected(
         loop {
             // Wait until all players are connected
             // and it is the current player's turn
-            while (arena.read().await.current_player_num() != Some(my_id)
+            while (arena.read().await.current_player_id() != Some(my_id)
                 && !arena.read().await.is_game_over())
             {
                 tokio::time::sleep(Duration::from_millis(10)).await;
@@ -229,7 +240,7 @@ pub async fn user_connected(
                                 continue;
                             }
 
-                            trace!("{} played {:?}", my_id, action);
+                            trace!("{:?} played {:?}", my_id, action);
                             arena.write().await.play_action(action);
                             action_played(clients.clone(), arena.clone(), outgoing_clone.clone())
                                 .await;
@@ -252,7 +263,7 @@ pub async fn user_connected(
                 }
             }
         }
-        info!("Player {} disconnected", my_id);
+        info!("Player {:?} disconnected", my_id);
         user_disconnected(my_id, clients, arena).await;
     });
 
@@ -260,12 +271,12 @@ pub async fn user_connected(
     user_initialized(my_id, init_clients.clone(), init_arena.clone()).await;
 
     // All users are connected, start the game
-    if my_id == num_players - 1 {
+    if init_clients.read().await.len() == num_players {
         game_initialized(init_clients, init_arena, outgoing.clone()).await;
     }
 }
 pub async fn play_default_action(
-    my_id: usize,
+    my_id: ClientId,
     clients: Clients,
     arena: GlobalArena,
     web_stream: Option<Outgoing>,
@@ -275,7 +286,7 @@ pub async fn play_default_action(
     }
 
     println!(
-        "[Turn : {}] [Player {} (crashed/timed out)] Playing a random move...",
+        "[Turn : {}] [Player {:?} (crashed/timed out)] Playing a random move...",
         TURN_COUNTER.load(Ordering::SeqCst),
         my_id
     );
@@ -290,11 +301,11 @@ pub async fn game_initialized(clients: Clients, arena: GlobalArena, web_stream: 
     action_played(clients, arena, web_stream).await;
 }
 
-pub async fn user_initialized(my_id: usize, clients: Clients, arena: GlobalArena) {
-    info!("{} connected", my_id);
+pub async fn user_initialized(my_id: ClientId, clients: Clients, arena: GlobalArena) {
+    info!("{:?} connected", my_id);
 }
 
-pub async fn user_disconnected(my_id: usize, clients: Clients, arena: GlobalArena) {
+pub async fn user_disconnected(my_id: ClientId, clients: Clients, arena: GlobalArena) {
     clients.write().await.remove(&my_id);
 }
 
@@ -341,31 +352,31 @@ pub async fn action_played(clients: Clients, arena: GlobalArena, web_stream: Opt
     let last_player = arena
         .read()
         .await
-        .current_player_num()
+        .current_player_id()
         .expect("No current player, is the game started?");
 
-    if LAST_PLAYER.load(Ordering::SeqCst) != last_player {
-        TURN_COUNTER.fetch_add(1, Ordering::SeqCst);
-        LAST_PLAYER.store(last_player, Ordering::SeqCst);
-    }
+    let num_moves = arena.read().await.num_moves();
+    TURN_COUNTER.swap(num_moves, Ordering::SeqCst);
 
     trace!("Sending game state to clients...");
+
     // Determine which client to send the next game state to
+    let player_num = arena.read().await.current_player_id().expect("No current player, but the game has already started");
     let client_info = arena.read().await.client_info();
-    let player_num = client_info.current_player_num;
 
     // Wait up to TIMEOUT for the player to come online and make a move
+    // TODO: This is a hacky way to wait for the player to come online
     if let None = clients.read().await.get(&player_num) {
         tokio::time::sleep(TIMEOUT).await;
     }
 
-    trace!("Sending game state to player {}", player_num);
+    trace!("Sending game state to player {:?}", player_num);
     if let Some(tx) = clients.write().await.get_mut(&player_num) {
         let info_str = serde_json::to_string(&client_info).unwrap();
         let info = Message::text(info_str);
         tx.send(info).await.unwrap();
         trace!("Sent game state!");
     } else {
-        panic!("no tx for client with id {}", player_num);
+        panic!("no tx for client with id {:?}", player_num);
     }
 }
