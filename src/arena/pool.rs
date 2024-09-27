@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use tokio::sync::{Mutex, RwLock};
 use warp::ws::WebSocket;
 use warp::Filter;
+use log::{info, error, warn, debug};
 
 type ArenaMap = HashMap<GameId, GlobalArena>;
 type RwArenaMap = Arc<RwLock<ArenaMap>>;
@@ -40,6 +41,7 @@ impl ArenaPool {
             .get(&game_id)
             .map(|arena| arena.clone())
     }
+
     async fn handle_upgrade(
         game_id: u64,
         client_id: u64,
@@ -55,10 +57,16 @@ impl ArenaPool {
 
         match (arenas, clients) {
             (Some(arena), Some(clients)) => {
+                info!("User {} connected to game {}", client_id.0, game_id.0);
                 user_connected(client_id, ws, clients, arena, web_stream);
             }
+            (None, _) => {
+                error!("Game {} does not exist, or is not ongoing", game_id.0);
+            }
+            (_, None) => {
+                panic!("Clients map does not exist for game {}", game_id.0);
+            }
             _ => {
-                println!("Game not found");
             }
         }
     }
