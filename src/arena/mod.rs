@@ -9,7 +9,10 @@ use tokio::sync::RwLock;
 
 pub mod arena;
 pub mod clock;
+
+//#[cfg(feature = "pool")]
 pub mod pool;
+
 pub mod protocol;
 pub mod replay;
 
