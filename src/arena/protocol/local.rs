@@ -85,7 +85,7 @@ pub async fn validate_action(action: &Action, client_id: ClientId, arena: Global
     return true;
 }
 
-pub async fn log_stream_connected(client_id : ClientId, socket: WebSocket, write_to_file: bool) {
+pub async fn log_stream_connected(client_id: ClientId, socket: WebSocket, write_to_file: bool) {
     let id = client_id;
 
     let mut file = if write_to_file {
@@ -308,7 +308,6 @@ pub async fn user_disconnected(my_id: ClientId, clients: Clients, arena: GlobalA
     clients.write().await.remove(&my_id);
 }
 
-
 /// Sends a broadcast message of the current game state to all clients
 pub async fn broadcast(clients: Clients, arena: GlobalArena) {
     let client_info = arena.read().await.client_info();
@@ -319,13 +318,11 @@ pub async fn broadcast(clients: Clients, arena: GlobalArena) {
     for (client_id, tx) in clients.write().await.iter_mut() {
         tx.send(broadcast.clone()).await.unwrap();
     }
-
 }
-
 
 /// Play actions automatically for a player until they have more than
 /// one legal action, also updates a connected web server with the game state
-pub async fn auto_play(clients: Clients, arena: GlobalArena, web_stream: Option<Outgoing>){
+pub async fn auto_play(clients: Clients, arena: GlobalArena, web_stream: Option<Outgoing>) {
     // Auto play for any given player if there is only 1 legal action
     loop {
         // If the game is over, don't do anything else
@@ -389,7 +386,11 @@ pub async fn action_played(clients: Clients, arena: GlobalArena, web_stream: Opt
     trace!("Sending game state to clients...");
 
     // Determine which client to send the next game state to
-    let player_num = arena.read().await.current_player_id().expect("No current player, but the game has already started");
+    let player_num = arena
+        .read()
+        .await
+        .current_player_id()
+        .expect("No current player, but the game has already started");
     let client_info = arena.read().await.client_info();
     let action_request = ServerMessage::PlayerActionRequest(client_info);
 

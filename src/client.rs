@@ -11,7 +11,7 @@ pub struct Log {
 }
 
 impl Log {
-    pub fn new(url : &str, port: u16, client_id : u64) -> Self {
+    pub fn new(url: &str, port: u16, client_id: u64) -> Self {
         let url = format!("{}:{}/log/{}", url, port, client_id);
         let url = Url::parse(&url).unwrap();
         let (socket, _) = connect(url).expect("Can't connect to the log server");
@@ -54,7 +54,7 @@ pub struct Args {
     client_id: u64,
 }
 
-/// Public function to allow Python and Rust users 
+/// Public function to allow Python and Rust users
 /// to have the same interface on the command line
 pub fn get_args() -> Args {
     let mut args = Args::parse();
@@ -120,7 +120,6 @@ pub fn run_bot<C: From<ClientInfo>, A: Into<Action>, B: Runnable<C, A> + Default
             if let Err(_) = game_socket_result {
                 break;
             }
-            
         } else {
             // TODO: handle broadcasts
         }

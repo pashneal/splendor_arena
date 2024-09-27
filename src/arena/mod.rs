@@ -16,8 +16,8 @@ pub mod pool;
 pub mod protocol;
 pub mod replay;
 
+pub use crate::game_logic::Phase;
 pub use arena::*;
 use clock::*;
 pub use protocol::*;
 use replay::*;
-pub use crate::game_logic::Phase;

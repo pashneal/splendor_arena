@@ -95,7 +95,6 @@ impl ArenaBuilder {
             api_key,
         }
     }
-
 }
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Copy)]
@@ -123,7 +122,7 @@ pub struct Arena {
     replay: Either<Replay<Initialized>, FinalizedReplay>, // A representation of the game including
     // the ability to walk through all
     // previous moves
-    clients: Vec<ClientId>, // The clients connected to the game
+    clients: Vec<ClientId>,  // The clients connected to the game
     port: u16,               // The port to run the local web server on
     send_to_web: bool,       // Whether to send the game state to the global server
     api_key: Option<String>, // The api key to use for sending the game state to the global server
@@ -278,11 +277,14 @@ impl Arena {
         let write_to_file = send_to_web.clone();
         let write_to_file = warp::any().map(move || write_to_file.clone());
 
-        let log = warp::path!("log" / u64 ).and(warp::ws()).and(write_to_file).map(
-            |clientid, ws: warp::ws::Ws, write_to_file| {
-                ws.on_upgrade(move |socket| log_stream_connected(ClientId(clientid), socket, write_to_file))
-            },
-        );
+        let log = warp::path!("log" / u64)
+            .and(warp::ws())
+            .and(write_to_file)
+            .map(|clientid, ws: warp::ws::Ws, write_to_file| {
+                ws.on_upgrade(move |socket| {
+                    log_stream_connected(ClientId(clientid), socket, write_to_file)
+                })
+            });
 
         let mut web_stream: Option<Outgoing> = None;
 
@@ -307,9 +309,13 @@ impl Arena {
             .and(clients_filter)
             .and(arena_filter.clone())
             .and(web_stream_filter)
-            .map(|_gameid, clientid, ws: warp::ws::Ws, clients, arena, web_stream| {
-                ws.on_upgrade(move |socket| user_connected(ClientId(clientid), socket, clients, arena, web_stream))
-            });
+            .map(
+                |_gameid, clientid, ws: warp::ws::Ws, clients, arena, web_stream| {
+                    ws.on_upgrade(move |socket| {
+                        user_connected(ClientId(clientid), socket, clients, arena, web_stream)
+                    })
+                },
+            );
 
         let routes = game.or(log).or(time);
         // Start the server on localhost at the specified port
@@ -346,7 +352,7 @@ pub struct ClientInfo {
 pub struct BroadcastInfo {
     pub board: Board,
     pub history: GameHistory,
-    pub players: Vec<PlayerPublicInfo>, 
+    pub players: Vec<PlayerPublicInfo>,
     pub current_player_num: usize,
     pub phase: Phase,
 }

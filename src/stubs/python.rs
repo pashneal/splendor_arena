@@ -875,7 +875,7 @@ pub fn run_python_bot(py: Python, bot_class: &PyAny) {
     let game_id = args.game_id.unwrap();
     let client_id = args.client_id;
 
-    let url = format!("{}:{}/game/{}/{}",url, port, game_id, client_id);
+    let url = format!("{}:{}/game/{}/{}", url, port, game_id, client_id);
     let url = Url::parse(&url).unwrap();
     let (mut game_socket, _) = connect(url).expect("Can't connect to the game server");
 
@@ -899,10 +899,10 @@ pub fn run_python_bot(py: Python, bot_class: &PyAny) {
         let msg = msg.to_text().expect("Error converting message to text");
         let message: ServerMessage = serde_json::from_str(msg).expect("Error parsing message");
 
-        if let ServerMessage::PlayerActionRequest(info) = message { 
+        if let ServerMessage::PlayerActionRequest(info) = message {
             let py_info = PyClientInfo::from_client_info(info);
-            let result =
-                bot_instance.call_method1("take_action", (py_info, py_log.try_borrow_mut().unwrap()));
+            let result = bot_instance
+                .call_method1("take_action", (py_info, py_log.try_borrow_mut().unwrap()));
             let py_action: PyAction = result
                 .expect("Error when calling method take_action()")
                 .extract()
