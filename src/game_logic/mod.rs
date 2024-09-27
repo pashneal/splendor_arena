@@ -15,8 +15,8 @@ pub use self::game::*;
 pub use self::history::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-enum Phase {
-    PlayerStart,          // Take some player action
+pub enum Phase {
+    PlayerBoardInteraction,          // Take some player action
     PlayerGemCapExceeded, // [Optional] Player has > 10 gems
     NobleAction,          // See if any nobles get attracted (multiple may be attracted)
     PlayerActionEnd,      // Finish the turn and see if the round should continue

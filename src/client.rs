@@ -108,16 +108,21 @@ pub fn run_bot<C: From<ClientInfo>, A: Into<Action>, B: Runnable<C, A> + Default
             }
         };
         let msg = msg.to_text().expect("Error converting message to text");
-        let info: ClientInfo = serde_json::from_str(msg).expect("Error parsing message");
-        let info: C = C::from(info);
-        let action = bot.take_action(info, &mut log);
-        let action = action.into();
-        let msg = ClientMessage::Action(action);
+        let message: ServerMessage = serde_json::from_str(msg).expect("Error parsing message");
+        if let ServerMessage::PlayerActionRequest(info) = message {
+            let info: C = C::from(info);
+            let action = bot.take_action(info, &mut log);
+            let action = action.into();
+            let msg = ClientMessage::Action(action);
 
-        let msg_str = serde_json::to_string(&msg).expect("Error converting action to string");
-        let game_socket_result = game_socket.send(Message::Text(msg_str));
-        if let Err(_) = game_socket_result {
-            break;
+            let msg_str = serde_json::to_string(&msg).expect("Error converting action to string");
+            let game_socket_result = game_socket.send(Message::Text(msg_str));
+            if let Err(_) = game_socket_result {
+                break;
+            }
+            
+        } else {
+            // TODO: handle broadcasts
         }
     }
 }

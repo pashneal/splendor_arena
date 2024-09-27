@@ -897,22 +897,27 @@ pub fn run_python_bot(py: Python, bot_class: &PyAny) {
             }
         };
         let msg = msg.to_text().expect("Error converting message to text");
-        let info: ClientInfo = serde_json::from_str(msg).expect("Error parsing message");
-        let py_info = PyClientInfo::from_client_info(info);
-        let result =
-            bot_instance.call_method1("take_action", (py_info, py_log.try_borrow_mut().unwrap()));
-        let py_action: PyAction = result
-            .expect("Error when calling method take_action()")
-            .extract()
-            .expect("Incorrect type returned by method take_action()");
+        let message: ServerMessage = serde_json::from_str(msg).expect("Error parsing message");
 
-        let action = py_action.into_action();
+        if let ServerMessage::PlayerActionRequest(info) = message { 
+            let py_info = PyClientInfo::from_client_info(info);
+            let result =
+                bot_instance.call_method1("take_action", (py_info, py_log.try_borrow_mut().unwrap()));
+            let py_action: PyAction = result
+                .expect("Error when calling method take_action()")
+                .extract()
+                .expect("Incorrect type returned by method take_action()");
 
-        let msg = ClientMessage::Action(action);
-        let msg_str = serde_json::to_string(&msg).expect("Error converting action to string");
-        let game_send_result = game_socket.send(Message::Text(msg_str));
-        if game_send_result.is_err() {
-            break;
+            let action = py_action.into_action();
+
+            let msg = ClientMessage::Action(action);
+            let msg_str = serde_json::to_string(&msg).expect("Error converting action to string");
+            let game_send_result = game_socket.send(Message::Text(msg_str));
+            if game_send_result.is_err() {
+                break;
+            }
+        } else {
+            // TODO: handle broadcasts
         }
     }
 }

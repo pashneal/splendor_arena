@@ -188,16 +188,14 @@ pub async fn user_connected(
             while (arena.read().await.current_player_id() != Some(my_id)
                 && !arena.read().await.is_game_over())
             {
-                tokio::time::sleep(Duration::from_millis(10)).await;
+                tokio::time::sleep(Duration::from_millis(1)).await;
             }
 
             if arena.read().await.is_game_over() {
                 break;
             }
 
-            // Give a little extra time to account for network + server latency
             let time_remaining = arena.read().await.time_remaining();
-            let time_remaining = time_remaining + Duration::from_millis(10);
 
             match timeout(time_remaining, client_rx.next()).await {
                 Ok(Some(msg)) => {
@@ -230,6 +228,7 @@ pub async fn user_connected(
                     match client_msg.unwrap() {
                         ClientMessage::Action(action) => {
                             if !validate_action(&action, my_id, arena.clone()).await {
+                                error!("Invalid action: {:?}", action);
                                 play_default_action(
                                     my_id,
                                     clients.clone(),
@@ -309,13 +308,24 @@ pub async fn user_disconnected(my_id: ClientId, clients: Clients, arena: GlobalA
     clients.write().await.remove(&my_id);
 }
 
-pub async fn action_played(clients: Clients, arena: GlobalArena, web_stream: Option<Outgoing>) {
-    //  An action was played, be sure to send the game state to the web server
-    //  if it is connected
-    let stream = web_stream.clone();
-    if stream.is_some() {
-        web::push_game_update(stream.unwrap(), arena.clone()).await;
+
+/// Sends a broadcast message of the current game state to all clients
+pub async fn broadcast(clients: Clients, arena: GlobalArena) {
+    let client_info = arena.read().await.client_info();
+    let broadcast_info = BroadcastInfo::from(client_info);
+    let broadcast_info = ServerMessage::Broadcast(broadcast_info);
+    let broadcast_info = serde_json::to_string(&broadcast_info).unwrap();
+    let broadcast = Message::text(broadcast_info);
+    for (client_id, tx) in clients.write().await.iter_mut() {
+        tx.send(broadcast.clone()).await.unwrap();
     }
+
+}
+
+
+/// Play actions automatically for a player until they have more than
+/// one legal action, also updates a connected web server with the game state
+pub async fn auto_play(clients: Clients, arena: GlobalArena, web_stream: Option<Outgoing>){
     // Auto play for any given player if there is only 1 legal action
     loop {
         // If the game is over, don't do anything else
@@ -339,15 +349,33 @@ pub async fn action_played(clients: Clients, arena: GlobalArena, web_stream: Opt
         if actions.len() != 1 {
             break;
         }
+
         let action = actions[0].clone();
         trace!("Auto played action: {:?}", action);
         arena.write().await.play_action(action);
+        broadcast(clients.clone(), arena.clone()).await;
         let stream = web_stream.clone();
+
         // An action was played, be sure to send the game state to the web server
         if stream.is_some() {
             web::push_game_update(stream.unwrap(), arena.clone()).await;
         }
     }
+}
+
+/// Is called whenever an action is played
+pub async fn action_played(clients: Clients, arena: GlobalArena, web_stream: Option<Outgoing>) {
+    broadcast(clients.clone(), arena.clone()).await;
+    //  An action was played, be sure to send the game state to the web server
+    //  if it is connected
+    let stream = web_stream.clone();
+    if stream.is_some() {
+        web::push_game_update(stream.unwrap(), arena.clone()).await;
+    }
+
+    // TODO: reconsider usage of auto_play, as this complicates
+    // the mental model of the game server
+    // auto_play(clients.clone(), arena.clone(), web_stream.clone()).await;
 
     let last_player = arena
         .read()
@@ -363,6 +391,7 @@ pub async fn action_played(clients: Clients, arena: GlobalArena, web_stream: Opt
     // Determine which client to send the next game state to
     let player_num = arena.read().await.current_player_id().expect("No current player, but the game has already started");
     let client_info = arena.read().await.client_info();
+    let action_request = ServerMessage::PlayerActionRequest(client_info);
 
     // Wait up to TIMEOUT for the player to come online and make a move
     // TODO: This is a hacky way to wait for the player to come online
@@ -372,7 +401,7 @@ pub async fn action_played(clients: Clients, arena: GlobalArena, web_stream: Opt
 
     trace!("Sending game state to player {:?}", player_num);
     if let Some(tx) = clients.write().await.get_mut(&player_num) {
-        let info_str = serde_json::to_string(&client_info).unwrap();
+        let info_str = serde_json::to_string(&action_request).unwrap();
         let info = Message::text(info_str);
         tx.send(info).await.unwrap();
         trace!("Sent game state!");

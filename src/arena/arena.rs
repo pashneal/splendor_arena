@@ -100,8 +100,18 @@ impl ArenaBuilder {
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Copy)]
 pub struct GameId(pub u64);
+impl GameId {
+    pub fn new() -> Self {
+        GameId(rand::random())
+    }
+}
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Copy)]
 pub struct ClientId(pub u64);
+impl ClientId {
+    pub fn new() -> Self {
+        ClientId(rand::random())
+    }
+}
 
 /// A module for running games across multiple clients. Can be fed binaries
 /// and run them in a tournament style. The protocol for communication is
@@ -150,6 +160,7 @@ impl Arena {
             current_player_num: self.game.current_player_num(),
             legal_actions,
             time_endpoint_url,
+            phase: self.game.phase(),
         }
     }
 
@@ -310,6 +321,12 @@ impl Arena {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ServerMessage {
+    Broadcast(BroadcastInfo),
+    PlayerActionRequest(ClientInfo),
+}
+
 pub struct GameResults {}
 /// A struct given to each client that contains all public information and private
 /// information known only to that client.
@@ -317,11 +334,33 @@ pub struct GameResults {}
 pub struct ClientInfo {
     pub board: Board,
     pub history: GameHistory,
+    pub phase: Phase,
     pub players: Vec<PlayerPublicInfo>,
     pub current_player: Player,
     pub current_player_num: usize,
     pub legal_actions: Vec<Action>,
     pub time_endpoint_url: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BroadcastInfo {
+    pub board: Board,
+    pub history: GameHistory,
+    pub players: Vec<PlayerPublicInfo>, 
+    pub current_player_num: usize,
+    pub phase: Phase,
+}
+
+impl From<ClientInfo> for BroadcastInfo {
+    fn from(info: ClientInfo) -> Self {
+        BroadcastInfo {
+            board: info.board,
+            history: info.history,
+            players: info.players,
+            current_player_num: info.current_player_num,
+            phase: info.phase,
+        }
+    }
 }
 
 /// A struct given to each client that contains all public information and private

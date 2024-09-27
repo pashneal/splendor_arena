@@ -156,7 +156,7 @@ impl Game {
             decks,
             current_player: 0,
             nobles,
-            current_phase: Phase::PlayerStart,
+            current_phase: Phase::PlayerBoardInteraction,
             dealt_cards,
             card_lookup,
             history: GameHistory::new(),
@@ -216,7 +216,7 @@ impl Game {
                 Some(discard_actions)
             }
 
-            Phase::PlayerStart => {
+            Phase::PlayerBoardInteraction => {
                 let mut actions = Vec::<Action>::new();
                 let player = &self.players[self.current_player];
 
@@ -288,7 +288,7 @@ impl Game {
     /// Given an action and the current phase, determine if the action is legal
     fn is_phase_correct_for(&self, action: Action) -> bool {
         match self.current_phase {
-            Phase::PlayerStart => match action {
+            Phase::PlayerBoardInteraction => match action {
                 TakeDouble(_) => true,
                 TakeDistinct(_) => true,
                 Reserve(_) => true,
@@ -311,6 +311,10 @@ impl Game {
                 _ => false,
             },
         }
+    }
+
+    pub fn phase(&self) -> Phase {
+        self.current_phase.clone()
     }
 
     /// Deals a card to a certain tier and return the id
@@ -543,7 +547,7 @@ impl Game {
 
             Continue => {
                 self.current_player = (self.current_player + 1) % self.players.len();
-                Phase::PlayerStart
+                Phase::PlayerBoardInteraction
             }
 
             Pass => {
@@ -556,7 +560,7 @@ impl Game {
                 });
 
                 match self.current_phase {
-                    Phase::PlayerStart => Phase::NobleAction,
+                    Phase::PlayerBoardInteraction => Phase::NobleAction,
                     Phase::NobleAction => Phase::PlayerActionEnd,
                     _ => panic!("Cannot pass in this phase"),
                 }
