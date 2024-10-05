@@ -42,6 +42,25 @@ impl ArenaPool {
             .map(|arena| arena.clone())
     }
 
+    /// Be sure to call this function periodically to remove completed games
+    /// from the pool and prevent memory leaks
+    pub async fn purge_completed_arenas(&self) {
+        let mut arenas = self.arenas.write().await;
+        let mut clients = self.clients.write().await;
+
+        let mut completed_games = vec![];
+        for (game_id, arena) in arenas.iter_mut() {
+            if arena.read().await.is_game_over() {
+                completed_games.push(game_id.clone());
+            }
+        }
+
+        for game_id in completed_games {
+            arenas.remove(&game_id);
+            clients.remove(&game_id);
+        }
+    }
+
     async fn handle_upgrade(
         game_id: u64,
         client_id: u64,
