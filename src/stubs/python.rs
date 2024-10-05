@@ -917,7 +917,8 @@ pub fn run_python_bot(py: Python, bot_class: &PyAny) {
                 break;
             }
         } else {
-            // TODO: handle broadcasts
+            // TODO: handle game state updates
+            // TODO: handle player update events
         }
     }
 }

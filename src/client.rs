@@ -3,6 +3,7 @@ use clap::Parser;
 use std::ops::Deref;
 use tungstenite::{connect, stream::MaybeTlsStream, Message};
 use url::Url;
+use log::trace;
 
 pub type WebSocket = tungstenite::WebSocket<MaybeTlsStream<std::net::TcpStream>>;
 
@@ -77,17 +78,17 @@ pub fn run_bot<C: From<ClientInfo>, A: Into<Action>, B: Runnable<C, A> + Default
     let game_id = args.game_id.unwrap();
     let client_id = args.client_id;
 
-    println!("Connecting to the game server...");
-    println!("Port: {}", port);
-    println!("Base URL: {}", base_url);
-    println!("Game ID: {}", game_id);
-    println!("Client ID: {}", client_id);
+    trace!("Connecting to the game server...");
+    trace!("Port: {}", port);
+    trace!("Base URL: {}", base_url);
+    trace!("Game ID: {}", game_id);
+    trace!("Client ID: {}", client_id);
 
     let url = format!("{}:{}/game/{}/{}", base_url, port, game_id, client_id);
-    println!("Connecting to: {}", url);
-    println!("");
+    trace!("Connecting to: {}", url);
+    trace!("");
     let url = Url::parse(&url).unwrap();
-    println!("Url: {:?}", url);
+    trace!("Url: {:?}", url);
     let (mut game_socket, _) = connect(url).expect("Can't connect to the game server");
 
     // Give the server a chance to start up
@@ -97,7 +98,7 @@ pub fn run_bot<C: From<ClientInfo>, A: Into<Action>, B: Runnable<C, A> + Default
 
     let mut bot = B::default();
     bot.initialize(&mut log);
-    println!("Connected to the game server...");
+    trace!("Connected to the game server...");
 
     loop {
         let msg = game_socket.read();
@@ -121,7 +122,8 @@ pub fn run_bot<C: From<ClientInfo>, A: Into<Action>, B: Runnable<C, A> + Default
                 break;
             }
         } else {
-            // TODO: handle broadcasts
+            // TODO: handle game state updates
+            // TODO: handle player update events
         }
     }
 }

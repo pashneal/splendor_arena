@@ -97,7 +97,7 @@ impl ArenaPool {
             );
 
         let routes = websocket;
-        tokio::spawn(warp::serve(routes).run(([127, 0, 0, 1], self.port)));
+        tokio::spawn(warp::serve(routes).run(([0, 0, 0, 0], self.port)));
     }
 
     async fn save_to_database() {

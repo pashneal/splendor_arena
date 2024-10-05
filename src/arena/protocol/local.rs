@@ -308,15 +308,18 @@ pub async fn user_disconnected(my_id: ClientId, clients: Clients, arena: GlobalA
     clients.write().await.remove(&my_id);
 }
 
-/// Sends a broadcast message of the current game state to all clients
-pub async fn broadcast(clients: Clients, arena: GlobalArena) {
+/// Sends a game state message of the current game state to all clients
+pub async fn broadcast_game_state(clients: Clients, arena: GlobalArena) {
     let client_info = arena.read().await.client_info();
-    let broadcast_info = BroadcastInfo::from(client_info);
-    let broadcast_info = ServerMessage::Broadcast(broadcast_info);
-    let broadcast_info = serde_json::to_string(&broadcast_info).unwrap();
-    let broadcast = Message::text(broadcast_info);
+    let game_state = GameState::from(client_info);
+    let lobby_update = LobbyUpdate::GameUpdate(game_state);
+    let lobby_update = ServerMessage::LobbyUpdate(lobby_update);
+    let lobby_update = serde_json::to_string(&lobby_update).unwrap();
+
+    let broadcast_message = Message::text(lobby_update);
+
     for (client_id, tx) in clients.write().await.iter_mut() {
-        tx.send(broadcast.clone()).await.unwrap();
+        tx.send(broadcast_message.clone()).await.unwrap();
     }
 }
 
@@ -350,10 +353,12 @@ pub async fn auto_play(clients: Clients, arena: GlobalArena, web_stream: Option<
         let action = actions[0].clone();
         trace!("Auto played action: {:?}", action);
         arena.write().await.play_action(action);
-        broadcast(clients.clone(), arena.clone()).await;
-        let stream = web_stream.clone();
+
+        // Be sure that all clients are aware of the updated game state
+        broadcast_game_state(clients.clone(), arena.clone()).await;
 
         // An action was played, be sure to send the game state to the web server
+        let stream = web_stream.clone();
         if stream.is_some() {
             web::push_game_update(stream.unwrap(), arena.clone()).await;
         }
@@ -362,7 +367,7 @@ pub async fn auto_play(clients: Clients, arena: GlobalArena, web_stream: Option<
 
 /// Is called whenever an action is played
 pub async fn action_played(clients: Clients, arena: GlobalArena, web_stream: Option<Outgoing>) {
-    broadcast(clients.clone(), arena.clone()).await;
+    broadcast_game_state(clients.clone(), arena.clone()).await;
     //  An action was played, be sure to send the game state to the web server
     //  if it is connected
     let stream = web_stream.clone();

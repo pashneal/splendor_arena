@@ -104,7 +104,7 @@ impl GameId {
         GameId(rand::random())
     }
 }
-#[derive(Debug, Clone, Hash, Eq, PartialEq, Copy)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub struct ClientId(pub u64);
 impl ClientId {
     pub fn new() -> Self {
@@ -328,8 +328,17 @@ impl Arena {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum LobbyUpdate {
+    PlayerJoined(ClientId),
+    PlayerLeft(ClientId),
+    GameStarted(GameState),
+    GameUpdate(GameState),
+    GameOver,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ServerMessage {
-    Broadcast(BroadcastInfo),
+    LobbyUpdate(LobbyUpdate),
     PlayerActionRequest(ClientInfo),
 }
 
@@ -349,7 +358,7 @@ pub struct ClientInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BroadcastInfo {
+pub struct GameState {
     pub board: Board,
     pub history: GameHistory,
     pub players: Vec<PlayerPublicInfo>,
@@ -357,9 +366,9 @@ pub struct BroadcastInfo {
     pub phase: Phase,
 }
 
-impl From<ClientInfo> for BroadcastInfo {
+impl From<ClientInfo> for GameState {
     fn from(info: ClientInfo) -> Self {
-        BroadcastInfo {
+        GameState {
             board: info.board,
             history: info.history,
             players: info.players,
