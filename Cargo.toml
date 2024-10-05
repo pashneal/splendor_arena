@@ -12,6 +12,7 @@ readme = "README.md"
 [dependencies]
 cached = { version = "0.48.1", default-features = false , features=["proc_macro"]}
 clap = { version = "4.5.1", features = ["derive", "std"], default-features = false }
+dashmap = "6.1.0"
 derive_more = { version = "0.99.18", default-features = false, features = ["display", "error"] }
 env_logger = "0.10.2"
 futures-util = "0.3.30"

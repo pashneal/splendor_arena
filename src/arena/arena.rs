@@ -16,7 +16,6 @@ use crate::arena::replay::*;
 use log::{debug, error, info, trace};
 use warp::Filter;
 
-/// TODO: Remove responsibility for launching clients from the Arena
 /// TODO: Remove replay
 
 /// Builder for creating an arena,
@@ -135,7 +134,7 @@ impl Arena {
     }
 
     pub fn small_client_info(&self) -> SmallClientInfo {
-        let client_info = self.client_info();
+        let client_info = self.private_game_state();
         SmallClientInfo {
             board: client_info.board,
             players: client_info.players,
@@ -143,6 +142,33 @@ impl Arena {
         }
     }
 
+    /// Returns the private game state for the current player
+    /// which includes all public information including as well private information
+    /// known only to that player
+    pub fn private_game_state(&self) -> PrivateGameState {
+        let players = self.game.players().iter().map(|p| p.to_public()).collect();
+        let legal_actions = self
+            .game
+            .get_legal_actions()
+            .map_or(vec![], |actions| actions);
+
+        let time_endpoint_url = format!("http://127.0.0.1:{}/time", self.port);
+
+        PrivateGameState {
+            board: Board::from_game(&self.game),
+            history: self.game.history(),
+            players,
+            current_player: self.game.current_player(),
+            current_player_num: self.game.current_player_num(),
+            legal_actions,
+            time_endpoint_url,
+            phase: self.game.phase(),
+        }
+    }
+
+    /// Note: this will soon be a private method, 
+    /// use `private_game_state` instead
+    #[deprecated]
     pub fn client_info(&self) -> PrivateGameState {
         let players = self.game.players().iter().map(|p| p.to_public()).collect();
         let legal_actions = self
@@ -283,7 +309,7 @@ impl Arena {
             .and(write_to_file)
             .map(|clientid, ws: warp::ws::Ws, write_to_file| {
                 ws.on_upgrade(move |socket| {
-                    log_stream_connected(ClientId(clientid), socket, write_to_file)
+                    handle_log_stream_connected(ClientId(clientid), socket, write_to_file)
                 })
             });
 
@@ -311,9 +337,16 @@ impl Arena {
             .and(arena_filter.clone())
             .and(web_stream_filter)
             .map(
-                |_gameid, clientid, ws: warp::ws::Ws, clients, arena, web_stream| {
+                |gameid, clientid, ws: warp::ws::Ws, clients, arena, web_stream| {
                     ws.on_upgrade(move |socket| {
-                        user_connected(ClientId(clientid), socket, clients, arena, web_stream)
+                        handle_user_connected(
+                            GameId(gameid),
+                            ClientId(clientid),
+                            socket,
+                            clients,
+                            arena,
+                            web_stream,
+                        )
                     })
                 },
             );
@@ -378,7 +411,7 @@ pub struct GameResults {}
 
 /// A struct given to each client that contains all public information in the game
 /// Note: This struct is deprecated and will be removed in the future
-/// Please use PrivateGameState directly instead
+/// please use PrivateGameState directly instead
 #[deprecated]
 pub type ClientInfo = PrivateGameState;
 

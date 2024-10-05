@@ -68,10 +68,10 @@ pub async fn push_game_update(outgoing_stream: Outgoing, arena: GlobalArena) {
 
 pub async fn get_game_update(arena: &Arena) -> Result<ArenaRequest, ()> {
     let game_state = arena.small_client_info();
-    match arena.client_info().history.num_actions() {
+    match arena.private_game_state().history.num_actions() {
         0 => return Ok(ArenaRequest::InitializeGame { info: game_state }),
         _ => {
-            let num_moves = arena.client_info().history.num_moves();
+            let num_moves = arena.private_game_state().history.num_moves();
             let game_update = GameUpdate {
                 info: game_state,
                 update_num: num_moves as usize + 1,
@@ -96,7 +96,7 @@ pub async fn push_initial_game(
     debug!("Pushing initial game state to global server...");
 
     let arena = arena.read().await;
-    assert!(arena.client_info().history.num_moves() == 0);
+    assert!(arena.private_game_state().history.num_moves() == 0);
 
     let game_update = get_game_update(&arena)
         .await

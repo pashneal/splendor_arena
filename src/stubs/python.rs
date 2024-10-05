@@ -916,7 +916,9 @@ pub fn run_python_bot(py: Python, bot_class: &PyAny) {
             if game_send_result.is_err() {
                 break;
             }
-        } else {
+        } else if let ServerMessage::LobbyUpdate(LobbyUpdate::GameOver) = message {
+            break;
+        } else { 
             // TODO: handle game state updates
             // TODO: handle player update events
         }

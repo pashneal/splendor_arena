@@ -121,9 +121,12 @@ pub fn run_bot<C: From<PrivateGameState>, A: Into<Action>, B: Runnable<C, A> + D
             if let Err(_) = game_socket_result {
                 break;
             }
-        } else {
+        } else if let ServerMessage::LobbyUpdate(LobbyUpdate::GameOver) = message {
+            break;
+        } else { 
             // TODO: handle game state updates
             // TODO: handle player update events
+            println!("Ignoring message: {:?}", message);
         }
     }
 }
