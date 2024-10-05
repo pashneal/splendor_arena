@@ -311,7 +311,9 @@ pub async fn user_disconnected(my_id: ClientId, clients: Clients, arena: GlobalA
 /// Sends a game state message of the current game state to all clients
 pub async fn broadcast_game_state(clients: Clients, arena: GlobalArena) {
     let client_info = arena.read().await.client_info();
-    let game_state = GameState::from(client_info);
+    let allowed_clients = arena.read().await.allowed_clients();
+    let game_state = PublicGameState::from(client_info, &allowed_clients);
+
     let lobby_update = LobbyUpdate::GameUpdate(game_state);
     let lobby_update = ServerMessage::LobbyUpdate(lobby_update);
     let lobby_update = serde_json::to_string(&lobby_update).unwrap();

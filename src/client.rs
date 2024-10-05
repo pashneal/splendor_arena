@@ -28,7 +28,7 @@ impl Log {
     }
 }
 
-pub trait Runnable<C: From<ClientInfo>, A: Into<Action>> {
+pub trait Runnable<C: From<PrivateGameState>, A: Into<Action>> {
     fn initialize(&mut self, log: &mut Log);
     fn take_action(&mut self, info: C, log: &mut Log) -> A;
     fn game_over(&self, info: C, results: GameResults) {
@@ -71,7 +71,7 @@ pub fn get_args() -> Args {
 /// TODO: move to rust stubs
 /// The protocol for communication and running the bot between the client and
 /// the server. Sends logs and actions to the server when appropriate.
-pub fn run_bot<C: From<ClientInfo>, A: Into<Action>, B: Runnable<C, A> + Default>() {
+pub fn run_bot<C: From<PrivateGameState>, A: Into<Action>, B: Runnable<C, A> + Default>() {
     let args = get_args();
     let port = args.port;
     let base_url = args.url.unwrap();

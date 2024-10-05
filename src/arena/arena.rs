@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
+use std::collections::HashMap;
 
 use crate::arena::clock::*;
 use crate::arena::protocol::*;
@@ -142,7 +143,7 @@ impl Arena {
         }
     }
 
-    pub fn client_info(&self) -> ClientInfo {
+    pub fn client_info(&self) -> PrivateGameState {
         let players = self.game.players().iter().map(|p| p.to_public()).collect();
         let legal_actions = self
             .game
@@ -151,7 +152,7 @@ impl Arena {
 
         let time_endpoint_url = format!("http://127.0.0.1:{}/time", self.port);
 
-        ClientInfo {
+        PrivateGameState {
             board: Board::from_game(&self.game),
             history: self.game.history(),
             players,
@@ -327,26 +328,64 @@ impl Arena {
     }
 }
 
+pub type Username = Option<String>;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum LobbyUpdate {
-    PlayerJoined(ClientId),
-    PlayerLeft(ClientId),
-    GameStarted(GameState),
-    GameUpdate(GameState),
+    /// A message sent to all clients in the lobby when a new player joins,
+    /// containing the new player's id and the lastest lobby as a result
+    PlayerJoinedLobby{
+        id: ClientId,
+        lobby : Vec<(ClientId, Username)>,
+    },
+
+    /// A message sent to all clients in the lobby when a player leaves,
+    /// containing the player's id and the latest lobby as a result
+    PlayerLeftLobby{
+        id: ClientId,
+        lobby : Vec<(ClientId, Username)>,
+    },
+
+    /// A message sent to all clients in the lobby when the game starts
+    GameStarted(PublicGameState),
+
+    /// A message sent to all clients in the lobby when the game updates
+    GameUpdate(PublicGameState),
+
+    /// A message sent to all clients in the lobby when the game ends
     GameOver,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum PrivateUpdate {
+    /// A secret message passed to a client so that they are
+    /// allowed to reconnect to the game
+    ReconnectSecret(String),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ServerMessage {
+    /// Messages that are broadcast to all clients in the lobby
+    /// and do not require a response
     LobbyUpdate(LobbyUpdate),
-    PlayerActionRequest(ClientInfo),
+    /// Messages that are sent to a single client, and do not require a response
+    PrivateUpdate(PrivateUpdate),
+    /// Messages that are sent to a single client, and require a response
+    PlayerActionRequest(PrivateGameState),
 }
 
 pub struct GameResults {}
-/// A struct given to each client that contains all public information and private
-/// information known only to that client.
+
+/// A struct given to each client that contains all public information in the game
+/// Note: This struct is deprecated and will be removed in the future
+/// Please use PrivateGameState directly instead
+#[deprecated]
+pub type ClientInfo = PrivateGameState;
+
+/// A struct given to each client that contains all public information in the game
+/// and private information known only to that client.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ClientInfo {
+pub struct PrivateGameState {
     pub board: Board,
     pub history: GameHistory,
     pub phase: Phase,
@@ -357,22 +396,25 @@ pub struct ClientInfo {
     pub time_endpoint_url: String,
 }
 
+/// A struct given to all client that contains only public information
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GameState {
+pub struct PublicGameState {
     pub board: Board,
     pub history: GameHistory,
     pub players: Vec<PlayerPublicInfo>,
     pub current_player_num: usize,
+    pub player_ids : Vec<ClientId>,
     pub phase: Phase,
 }
 
-impl From<ClientInfo> for GameState {
-    fn from(info: ClientInfo) -> Self {
-        GameState {
+impl PublicGameState {
+    pub fn from(info: PrivateGameState, clients : &[ClientId]) -> Self {
+        PublicGameState {
             board: info.board,
             history: info.history,
             players: info.players,
             current_player_num: info.current_player_num,
+            player_ids: clients.to_vec(),
             phase: info.phase,
         }
     }
@@ -387,4 +429,4 @@ pub struct SmallClientInfo {
     pub current_player_num: usize,
 }
 
-impl JSONable for ClientInfo {}
+impl JSONable for PrivateGameState {}

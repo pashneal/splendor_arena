@@ -1,10 +1,10 @@
 [package]
 name = "splendor_arena"
-version = "0.1.17"
+version = "0.1.18"
 edition = "2021"
 license = "MIT"
 keywords = ["splendor", "game", "arena"]
-description = "A crate for facilitating Splendor game play between autonomous agents."
+description = "A crate for facilitating Splendor game play between autonomous agents or human players."
 repository = "https://github.com/pashneal/stourney_arena"
 readme = "README.md"
 
