@@ -1,9 +1,9 @@
 use crate::*;
 use clap::Parser;
+use log::trace;
 use std::ops::Deref;
 use tungstenite::{connect, stream::MaybeTlsStream, Message};
 use url::Url;
-use log::trace;
 
 pub type WebSocket = tungstenite::WebSocket<MaybeTlsStream<std::net::TcpStream>>;
 

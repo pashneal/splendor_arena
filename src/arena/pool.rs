@@ -1,9 +1,9 @@
 use super::*;
+use log::{debug, error, info, warn};
 use std::collections::HashMap;
 use tokio::sync::{Mutex, RwLock};
 use warp::ws::WebSocket;
 use warp::Filter;
-use log::{info, error, warn, debug};
 
 type ArenaMap = HashMap<GameId, GlobalArena>;
 type RwArenaMap = Arc<RwLock<ArenaMap>>;
@@ -66,8 +66,7 @@ impl ArenaPool {
             (_, None) => {
                 panic!("Clients map does not exist for game {}", game_id.0);
             }
-            _ => {
-            }
+            _ => {}
         }
     }
 

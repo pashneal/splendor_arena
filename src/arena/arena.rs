@@ -4,10 +4,10 @@ use crate::game_logic::*;
 use crate::player::*;
 use crate::JSONable;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
-use std::collections::HashMap;
 
 use crate::arena::clock::*;
 use crate::arena::protocol::*;
@@ -334,16 +334,16 @@ pub type Username = Option<String>;
 pub enum LobbyUpdate {
     /// A message sent to all clients in the lobby when a new player joins,
     /// containing the new player's id and the lastest lobby as a result
-    PlayerJoinedLobby{
+    PlayerJoinedLobby {
         id: ClientId,
-        lobby : Vec<(ClientId, Username)>,
+        lobby: Vec<(ClientId, Username)>,
     },
 
     /// A message sent to all clients in the lobby when a player leaves,
     /// containing the player's id and the latest lobby as a result
-    PlayerLeftLobby{
+    PlayerLeftLobby {
         id: ClientId,
-        lobby : Vec<(ClientId, Username)>,
+        lobby: Vec<(ClientId, Username)>,
     },
 
     /// A message sent to all clients in the lobby when the game starts
@@ -403,12 +403,12 @@ pub struct PublicGameState {
     pub history: GameHistory,
     pub players: Vec<PlayerPublicInfo>,
     pub current_player_num: usize,
-    pub player_ids : Vec<ClientId>,
+    pub player_ids: Vec<ClientId>,
     pub phase: Phase,
 }
 
 impl PublicGameState {
-    pub fn from(info: PrivateGameState, clients : &[ClientId]) -> Self {
+    pub fn from(info: PrivateGameState, clients: &[ClientId]) -> Self {
         PublicGameState {
             board: info.board,
             history: info.history,
