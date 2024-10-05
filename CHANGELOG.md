@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+
+##  [0.1.18] - 2024-10-05
+
+### Notable Changes
+
+- The `ClientInfo` struct has been renamed to `PrivateGameState` with an eye towards
+  removing the `ClientInfo` struct in the future.
+
+##  [0.1.17] 
+
+### Breaking Changes
+
+- Removed the ability to specify the location of the python 3 interpreter
+  when launching the Arena, that is now out of scope for the Arena.
+
+- Arena is no longer responsible for launching clients, and instead
+  serves websocket endpoints for clients to connect to.
+
+## Added
+
+- `Arena` now exposes a `Arena::spawn` method that allows for launching the
+   Arena in a background thread.  
+
 ##  [0.1.x] - 2024-09-26
 
 ### Breaking Changes
@@ -9,6 +32,7 @@ All notable changes to this project will be documented in this file.
 - The `Arena` no longer exposes clients array to users of the Arena, instead
   the `Arena` now exposes a `clients` method that returns a reference to the
   clients array.
+
 
 ## [0.1.x] - 2024-09-15
 
