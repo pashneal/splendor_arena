@@ -126,7 +126,6 @@ pub fn run_bot<C: From<PrivateGameState>, A: Into<Action>, B: Runnable<C, A> + D
         } else { 
             // TODO: handle game state updates
             // TODO: handle player update events
-            println!("Ignoring message: {:?}", message);
         }
     }
 }

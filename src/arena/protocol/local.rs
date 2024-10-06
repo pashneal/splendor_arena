@@ -290,6 +290,7 @@ pub async fn handle_game_initialized(clients: Clients, arena: GlobalArena, web_s
 }
 
 pub async fn handle_game_over(clients: Clients, arena: GlobalArena) {
+    println!("Game over!");
     broadcast_game_over(clients.clone(), arena.clone()).await;
     let allowed_clients = arena.read().await.allowed_clients().clone();
     for client_id in allowed_clients.iter() {
